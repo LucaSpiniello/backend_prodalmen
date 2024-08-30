@@ -1,0 +1,5 @@
+python manage.py makemigrations bodegas cuentas comercializador controlcalidad productores recepcionmp core produccion seleccion embalaje agrupacionbins exportacion clientes despacho mercadointerno pedidos inventario guiassalida planta_harina rest_authtoken
+
+
+
+python manage.py graph_models --arrow-shape normal clientes pedidos embalaje bodegas pedidos -o prodalwebv3_clientes_pedidos_embalaje_bodegas_pedidos.png -X Historical*,ModeloBase,ModeloBaseHistorico,ContentType,User,City,Country
