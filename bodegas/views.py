@@ -126,7 +126,6 @@ class BinBodegaViewSet(viewsets.ModelViewSet):
                 queryset = BinBodega.objects.all()
             else:
                 queryset = BinBodega.objects.filter(fecha_creacion__year=anio)
-
             # Excluir los objetos con ingresado=True y procesado=True
             queryset = queryset.exclude(Q(ingresado=True) |
                 Q(procesado=True) |

@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save, pre_save, pre_delete
+from django.db.models.signals import post_save, pre_save, pre_delete, post_delete
 from django.dispatch import receiver
 from despacho.models import Despacho, DespachoProducto
 from pedidos.models import Pedido, FrutaEnPedido
@@ -180,3 +180,11 @@ def crear_despacho_producto(sender, instance, created, **kwargs):
 def eliminar_pedido_asociado(sender, instance, **kwargs):
     ct = ContentType.objects.get_for_model(instance)
     Pedido.objects.filter(tipo_pedido=ct, id_pedido=instance.pk).delete()
+
+
+@receiver(post_delete, sender=Pedido)
+def eliminar_frutas_pedido(sender, instance, **kwargs):
+    # Eliminar las frutas asociadas al pedido
+    frutas = FrutaEnPedido.objects.filter(pedido=instance)
+    for fruta in frutas:
+        fruta.delete() 

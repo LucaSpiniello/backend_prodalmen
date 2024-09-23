@@ -37,7 +37,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     "pedido": f'Pedido Mercado Interno N° {pedido.id_pedido}',
                     "razon_social": cliente.razon_social,
                     "despacho_retiro": 'Retiro Cliente' if pedido.pedido.retira_cliente and not sucursal_matriz else sucursal_matriz,
-                    "estado_pedido": pedido.pedido.get_estado_pedido_display(),
+                    "estado_pedido": pedido.get_estado_pedido_display(),
                     "fecha_creacion": pedido.pedido.fecha_creacion,
                     "fecha_entrega": pedido.pedido.fecha_entrega,
                         }
@@ -52,7 +52,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     "pedido": f'Pedido Exportación N° {pedido.id_pedido}',
                     "razon_social": cliente.razon_social,
                     "despacho_retiro": 'Retiro Cliente' if pedido.pedido.retira_cliente and not sucursal_matriz else sucursal_matriz,
-                    "estado_pedido": pedido.pedido.get_estado_pedido_display(),
+                    "estado_pedido": pedido.get_estado_pedido_display(),
                     "fecha_creacion": pedido.pedido.fecha_creacion,
                     "fecha_entrega": pedido.pedido.fecha_entrega,
                         }
@@ -81,7 +81,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     "cliente": cliente_guia,
                     "tipo_guia": pedido.pedido.get_tipo_salida_display(),
                     "despacho_retiro": 'Retiro Cliente' if pedido.pedido.retira_cliente else 'Despacho',
-                    "estado_pedido": pedido.pedido.get_estado_guia_salida_display(),
+                    "estado_pedido": pedido.get_estado_guia_salida_display(),
                     "fecha_creacion": pedido.pedido.fecha_creacion,
                     "fecha_entrega": pedido.pedido.fecha_entrega,
                 }

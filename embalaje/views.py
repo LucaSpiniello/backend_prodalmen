@@ -137,6 +137,7 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
             total_peso = 0
             cantidad_cajas = 0
             if pallet.cajasenpalletproductoterminado_set.exists():  # Verificar si hay cajas en el pallet
+                print(f" cajas {pallet.cajasenpalletproductoterminado_set.all()}")
                 for caja in pallet.cajasenpalletproductoterminado_set.all():
                     total_peso += caja.peso_x_caja * caja.cantidad_cajas
                     cantidad_cajas += caja.cantidad_cajas
@@ -159,6 +160,7 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
         serializer = PalletProductoTerminadoBodegaSerializer(data = resultados, many = True)
         serializer.is_valid(raise_exception = True)
         return Response(serializer.data)
+            
     
     @action(detail = False, methods = ['GET'])
     def historico_pallet(self, request):
