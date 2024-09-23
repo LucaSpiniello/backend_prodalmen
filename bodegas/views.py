@@ -165,6 +165,7 @@ class BinBodegaViewSet(viewsets.ModelViewSet):
         """
         Apply the default filtering and then apply custom filters.
         """
+        
         queryset = super().filter_queryset(queryset)
         filters = {
             'bodegas': self.request.GET.get('bodegas'),
@@ -172,7 +173,6 @@ class BinBodegaViewSet(viewsets.ModelViewSet):
             'variedad': self.request.GET.get('variedad'),
             'calibre': self.request.GET.get('calibre')
         }
-
         if filters['bodegas']:
             queryset = self.filter_by_bodegas(queryset, filters['bodegas'])
         if filters['calidad']:
@@ -181,7 +181,6 @@ class BinBodegaViewSet(viewsets.ModelViewSet):
             queryset = self.filter_by_variedad(queryset, filters['variedad'])
         if filters['calibre']:
             queryset = self.filter_by_calibre(queryset, filters['calibre'])
-        
         return queryset
     
     def filter_by_bodegas(self, queryset, bodegas):

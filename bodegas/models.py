@@ -6,7 +6,7 @@ from controlcalidad.estados_modelo import CALIDAD_FRUTA
 from core.models import ModeloBase, ModeloBaseHistorico
 from django.contrib.contenttypes.fields import GenericRelation
 from controlcalidad.models import *
-
+from seleccion.models import *
 
 class CCGuiaInterna(ModeloBase):
     opciones_cc = models.Q(app_label='controlcalidad', model='ccrecepcionmateriaprima') | models.Q(app_label='controlcalidad', model='cclotesinternos') 
@@ -365,7 +365,6 @@ class BodegaG2(ModeloBaseHistorico):
     fecha_fumigacion        = models.DateTimeField(blank=True, null=True)   
     tarja                   = GenericRelation('bodegas.BinBodega', content_type_field='tipo_binbodega', object_id_field='id_binbodega') 
 
-
     class Meta:
         verbose_name = 'Bodega G2'
         verbose_name_plural = 'Bodega G2'
@@ -425,7 +424,6 @@ class BodegaG4(ModeloBaseHistorico):
     fecha_fumigacion            = models.DateTimeField(blank=True, null=True)   
     calle_bodega                = models.CharField(max_length=2, choices=CALLE_BODEGA_4, default='-')
     tarja                       = GenericRelation('bodegas.BinBodega', content_type_field='tipo_binbodega', object_id_field='id_binbodega') 
-
     
     class Meta:
         verbose_name = 'Bodega G4'

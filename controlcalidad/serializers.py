@@ -117,7 +117,7 @@ class DetalleCCRecepcionMateriaPrimaSerializer(serializers.ModelSerializer):
     registrado_por_label = serializers.SerializerMethodField()
     email_registrador = serializers.SerializerMethodField()
     
-    
+    comercializador = serializers.SerializerMethodField()
     def get_registrado_por_label(self, obj):
        if obj.cc_registrado_por:
             return f'{obj.cc_registrado_por.first_name} {obj.cc_registrado_por.last_name}'
@@ -129,6 +129,12 @@ class DetalleCCRecepcionMateriaPrimaSerializer(serializers.ModelSerializer):
             return obj.cc_registrado_por.email
         else:
             return 'Sin Registrar CC'
+    
+    def get_comercializador(self, obj):
+        try:
+            return obj.recepcionmp.guiarecepcion.comercializador.nombre
+        except:
+            return 'Sin Comercializador'
     
     def get_variedad(self, obj):
         variedad = None

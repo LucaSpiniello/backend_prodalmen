@@ -101,7 +101,6 @@ class OperarioViewSet(viewsets.ModelViewSet):
         skill_data = request.data
         # Aquí deberías validar los datos de skill_data, por ejemplo, si es un ID válido.
         skill, created = SkillOperario.objects.get_or_create(operario=operario, **skill_data)
-
         if created:
             return Response({'status': 'skill agregado'}, status=status.HTTP_200_OK)
         else:

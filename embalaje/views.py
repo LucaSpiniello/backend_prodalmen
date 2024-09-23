@@ -101,7 +101,6 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
             "pallets": resultados
         })
             
-        
     
     @action(detail=True, methods=['PATCH'])
     def bins_en_embalaje(self, request, pk=None):
@@ -468,8 +467,10 @@ class FrutaBodegaViewSet(viewsets.ModelViewSet):
         variedad = 'RV' if len(variedades_unicas) > 1 else variedades_unicas.pop()
         calibre_unicas = set([get_calibre(bin) for bin in binbodega])
         calibre = '0' if len(calibre_unicas) > 1 else calibre_unicas.pop()
-        calidades_unicas = set([get_calidad(bin) for bin in binbodega])
-        calidad = 'SN' if not calidades_unicas or len(calidades_unicas) > 1 else calidades_unicas.pop()
+        calidades_unicas = set()
+        for bin in bins:
+            calidades_unicas.add(bin["calidad"])
+        calidad = 'MultiCalidades' if len(calidades_unicas) > 1 else calidades_unicas.pop()
         tipo_producto_unico = set([(bin) for bin in binbodega])
         tipo_producto = clasificar_bines_por_tipo(tipo_producto_unico)
         embalaje.update(variedad = variedad, calibre = calibre, calidad = calidad, tipo_producto = tipo_producto)    
@@ -546,6 +547,12 @@ class PalletProductoTerminadoViewSet(viewsets.ModelViewSet):
     def list(self,request, embalaje_pk=None):
         queryset= self.get_queryset().filter(embalaje=embalaje_pk)
         serializer= self.get_serializer_class()(queryset, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['GET'], url_path='get_all_pallets')
+    def get_all_pallets(self, request):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer_class()(queryset, many=True)
         return Response(serializer.data)
 
 class CajasEnPalletProductoTerminadoViewSet(viewsets.ModelViewSet):

@@ -16,8 +16,6 @@ from .filtros import *
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
 
-
-
 from django.db.models import Sum, Avg, F
 
 class CCRecepcionMateriaPrimaVBViewSet(viewsets.ModelViewSet):
@@ -263,7 +261,6 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         cc_promedio_porcentaje_cc_pepa = PromedioPepaMuestraSerializer(promedio_por_cc_pepa).data
         cc_promedio_porcentaje_cc_pepa_calibrada = PromedioCalibresSerializer(promedio_cc_pepa_calibrada).data
         
-
         return Response({   
             'cc_muestra': cc_muestra_serializado,
             'cc_pepa': cc_pepa_serializado,
@@ -278,6 +275,76 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
             'cc_promedio_porcentaje_cc_pepa': cc_promedio_porcentaje_cc_pepa,
             'cc_promedio_porcentaje_cc_pepa_calibradas': cc_promedio_porcentaje_cc_pepa_calibrada,
             'numero_lote': numero_lote,
+        })
+
+    @action(detail=False, methods=['POST'], url_path='calculo_final_lotes')
+    def calculo_final_lotes(self, request, pks_lotes=None):
+        # Convertir la lista de IDs recibida en la URL
+        lotes_pks = request.data.get('ids', [])
+
+        resultados_acumulados = {
+            'kilos_netos': 0,
+            'kilos_brutos_proyectados': 0,
+            'por_brutos_proyectados': 0,
+            'merma_exp_proyectados': 0,
+            'final_exp_proyectados': 0,
+            'merma_cat2': 0,
+            'final_cat2': 0,
+            'merma_des': 0,
+            'final_des': 0,
+            'bruto_real': 0,
+            'producciones': []
+        }
+
+        for pk in lotes_pks:
+            try:
+                # Obtener la muestra del lote por ID
+                cc_muestra = RecepcionMp.objects.get(guiarecepcion=pk)
+                id_guia = cc_muestra.id
+                muestra = cc_muestras_lotes([cc_muestra])
+                cc_pepa = cc_pepa_lote([cc_muestra])
+                cc_descuentos = descuentos_cat2_desechos(cc_pepa, muestra)
+                cc_aporte_pex = aporte_pex(cc_descuentos, muestra)
+                cc_porcentaje_liquidar = porcentaje_a_liquidar(cc_aporte_pex)
+                cc_kilos_desc_merma = kilos_descontados_merma(cc_porcentaje_liquidar, muestra)
+                cc_merma_por = merma_porcentual(cc_aporte_pex, cc_porcentaje_liquidar)
+                produccion = Produccion.objects.filter(
+                    lotes__guia_patio__cc_guia__id_guia=id_guia,
+                ).distinct().first()
+                peso_real = 0
+                if produccion:
+                    peso_real = TarjaResultante.objects.filter(
+                        produccion=produccion,
+                        esta_eliminado=False
+                    ).annotate(
+                        peso_neto=F('peso') - F('tipo_patineta')
+                    ).aggregate(total_peso_neto=Sum('peso_neto'))['total_peso_neto']
+                    print(f"peso total {peso_real} programa {produccion}")
+                    
+                cc_calculo_final = calculo_final(muestra, cc_merma_por, cc_descuentos, cc_kilos_desc_merma)
+                
+                if (produccion.id not in resultados_acumulados['producciones']):
+                    resultados_acumulados['kilos_netos'] = round(resultados_acumulados['kilos_netos'] + cc_calculo_final['kilos_netos'], 2)
+                    resultados_acumulados['kilos_brutos_proyectados'] = round(resultados_acumulados['kilos_brutos_proyectados'] + cc_calculo_final['kilos_brutos'], 2)
+                    resultados_acumulados['por_brutos_proyectados'] = round(resultados_acumulados['por_brutos_proyectados'] + cc_calculo_final['por_brutos'], 2)
+                    resultados_acumulados['merma_exp_proyectados'] = round(resultados_acumulados['merma_exp_proyectados'] + cc_calculo_final['merma_exp'], 2)
+                    resultados_acumulados['final_exp_proyectados'] = round(resultados_acumulados['final_exp_proyectados'] + cc_calculo_final['final_exp'], 2)
+                    resultados_acumulados['merma_cat2'] = round(resultados_acumulados['merma_cat2'] + cc_calculo_final['merma_cat2'], 2)
+                    resultados_acumulados['final_cat2'] = round(resultados_acumulados['final_cat2'] + cc_calculo_final['final_cat2'], 2)
+                    resultados_acumulados['merma_des'] = round(resultados_acumulados['merma_des'] + cc_calculo_final['merma_des'], 2)
+                    resultados_acumulados['final_des'] = round(resultados_acumulados['final_des'] + cc_calculo_final['final_des'], 2)
+                    resultados_acumulados['producciones'].append(produccion.id)
+                    resultados_acumulados['bruto_real'] = round(resultados_acumulados['bruto_real'] + peso_real, 2)
+                    
+
+
+            except RecepcionMp.DoesNotExist:
+                # Manejar el caso en que un lote con el ID no existe
+                continue
+
+        # Devolver los resultados acumulados
+        return Response({
+            'calculo_final_acumulado': resultados_acumulados
         })
         
         
@@ -366,7 +433,6 @@ class FotosCCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
     serializer_class = FotosCCRecepcionMateriaPrimaSerializer
     permission_classes = [IsAuthenticated,]
     
-
 
 class CCTarjaResultanteViewSet(viewsets.ModelViewSet):
     lookup_field = 'tarja'

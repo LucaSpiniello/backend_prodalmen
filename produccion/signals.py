@@ -141,6 +141,7 @@ def crear_cc_tarja_resultante_y_vincular_a_tarja(sender, instance, created, **kw
     if created:
         lotes = LotesPrograma.objects.filter(produccion=instance.produccion)
         variedades_unicas = set(lotes.values_list('bodega_techado_ext__variedad', flat=True))
+        print(f"Variedades únicas: {variedades_unicas}")
         variedad = 'RV' if len(variedades_unicas) > 1 else variedades_unicas.pop() if variedades_unicas else None
         CCTarjaResultante.objects.update_or_create(
             tarja=instance,

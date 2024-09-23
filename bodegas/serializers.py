@@ -146,6 +146,7 @@ class BinBodegaSerializer(serializers.ModelSerializer):
     codigo_tarja = serializers.SerializerMethodField()
     kilos_bin = serializers.SerializerMethodField()
     programa_produccion = serializers.SerializerMethodField()
+    programa_seleccion = serializers.SerializerMethodField()
     variedad = serializers.SerializerMethodField()
     calibre = serializers.SerializerMethodField()
     calidad = serializers.SerializerMethodField()
@@ -167,7 +168,19 @@ class BinBodegaSerializer(serializers.ModelSerializer):
     def get_variedad(self, obj):
         return obj.variedad
         
-    def get_programa_produccion (self, obj):
+    def get_programa_seleccion(self, obj):
+        # Obtener el programa de selección a través de BinsPepaCalibrada
+        bins_pepa_calibrada = BinsPepaCalibrada.objects.filter(binbodega=obj).first()
+        if bins_pepa_calibrada and bins_pepa_calibrada.seleccion:
+            return f"Seleccion N° {bins_pepa_calibrada.seleccion.numero_programa}"
+        return None
+
+    def get_programa_produccion(self, obj):
+        # Primero intentamos obtener el programa de producción a través de BinsPepaCalibrada -> Seleccion -> Producción
+        bins_pepa_calibrada = BinsPepaCalibrada.objects.filter(binbodega=obj).first()
+        if bins_pepa_calibrada and bins_pepa_calibrada.seleccion and bins_pepa_calibrada.seleccion.produccion:
+            return f"Producción N° {bins_pepa_calibrada.seleccion.produccion.id}"
+        # Si no hay relación con selección, devolver origen_tarja como programa de producción
         return obj.origen_tarja
     
     def get_kilos_bin (self, obj):
@@ -190,6 +203,8 @@ class DetalleBinBodegaSerializer(serializers.ModelSerializer):
     calibre = serializers.SerializerMethodField()
     calidad = serializers.SerializerMethodField()
     tipo_producto = serializers.SerializerMethodField()
+    programa_seleccion = serializers.SerializerMethodField() 
+    programa_produccion = serializers.SerializerMethodField()
         
     def get_tipo_producto(self, obj):
         return obj.tipo_producto
@@ -235,7 +250,20 @@ class DetalleBinBodegaSerializer(serializers.ModelSerializer):
             return tipo_bin_bodega_content_type.id
         except ContentType.DoesNotExist:
             return None
+
+    def get_programa_seleccion(self, obj):
+        if obj.binbodega and hasattr(obj.binbodega, 'seleccion'):
+            seleccion = obj.binbodega.seleccion.seleccion
+            return f"Seleccion N° {seleccion.numero_programa}"
+        return None
+
+    def get_programa_produccion(self, obj):
+        if obj.binbodega and hasattr(obj.binbodega, 'seleccion'):
+            seleccion = obj.binbodega.seleccion.seleccion
+            if seleccion and hasattr(seleccion, 'produccion'):
+                return f"{seleccion.produccion}"
         
+        return obj.origen_tarja
     class Meta:
         model = BinBodega
         fields = '__all__'

@@ -363,7 +363,7 @@ def obtener_calidad_embalaje(bin):
         elif bin.bin_bodega.binbodega.tarja.tipo_tarja.model in ['bodegag3', 'bodegag4', 'bodegag5']:
           cc_tarja = CCTarjaSeleccionada.objects.filter(tarja_seleccionada = bin.bin_bodega.binbodega.tarja.tarja.seleccion).first()
           if cc_tarja:
-            return cc_tarja.calidad
+            return cc_tarja.calidad_fruta
           return 'Sin Calidad'
         elif bin.bin_bodega.binbodega.tarja.tipo_tarja.model in ['bodegag6', 'bodegag7']:
           return 'Sin Calidad'
@@ -378,7 +378,7 @@ def obtener_calidad_embalaje(bin):
     elif bin.bin_bodega.tipo_binbodega.model in ['bodegag3', 'bodegag4', 'bodegag5', ]:
       cc_tarja = CCTarjaSeleccionada.objects.filter(tarja_seleccionada = bin.bin_bodega.binbodega.seleccion).first()
       if cc_tarja:
-        return cc_tarja.calidad
+        return cc_tarja.calidad_fruta
       return 'Sin Calidad'
     elif bin.bin_bodega.tipo_binbodega.model in ['bodegag6', 'bodegag7']:
       return 'Sin Calidad'

@@ -16,9 +16,8 @@ from .funciones import *
 from collections import defaultdict
 from datetime import datetime
 from rest_framework.exceptions import NotFound
-from django.utils.timezone import make_aware, is_naive
-from datetime import datetime, timedelta
-
+from django.utils.timezone import make_aware, is_naive, now
+from datetime import datetime, timedelta, time
 
 
 
@@ -54,6 +53,55 @@ class SeleccionViewSet(viewsets.ModelViewSet):
             })
 
         return Response(resultados)
+
+        # create a get enp to get all the proccesed bins
+    @action(detail=False, methods=['GET'], url_path='get_all_info')
+    def get_all_info(self, request, seleccion_pk=None):
+
+        selecciones = Seleccion.objects.filter(estado_programa='4')
+    
+        resultado_selecciones = []
+        for i in selecciones:
+            produccion = i.produccion
+            bins_procesados = BinsPepaCalibrada.objects.filter(seleccion=i)
+            variedad = bins_procesados.first().binbodega.cdc_tarja.get_variedad_display()
+
+            productor = "Sin productor"
+            comercializador = "Sin comercializador"
+            guias_recepcion = "Sin guia"
+            if produccion is not None:
+                primer_lote = produccion.lotes.all().first()
+                
+                if primer_lote and primer_lote.guia_patio and primer_lote.guia_patio.lote_recepcionado:
+                    productor = primer_lote.guia_patio.lote_recepcionado.guiarecepcion.productor.nombre
+                    comercializador = primer_lote.guia_patio.lote_recepcionado.guiarecepcion.comercializador.nombre
+                    
+                    # Crear un conjunto para almacenar guías de recepción únicas
+                    guias_recepcion_set = {
+                        lote.guia_patio.lote_recepcionado.guiarecepcion.pk
+                        for lote in produccion.lotes.all()
+                        if lote.guia_patio and lote.guia_patio.lote_recepcionado
+                    }
+                    
+                    guias_recepcion = ", ".join(str(guia) for guia in sorted(guias_recepcion_set))
+
+            calibres = calcular_kilos_por_calibre_tarjas_seleccionadas(i.pk)
+            fruta_resultante = consulta_bins_seleccionados(i.pk)
+            controles = calcular_control_sub_productos_tarjas_seleccionadas(i.pk)
+            fruta_resultante = fruta_resultante['fruta_resultante']
+            fecha_termino = i.fecha_termino_proceso
+            resultado_selecciones.append({
+                "seleccion": i.pk,
+                "variedad": variedad,
+                "productor": productor,
+                "comercializador": comercializador,
+                "calibres": calibres,
+                "fruta_resultante": fruta_resultante,
+                "guia_recepcion": guias_recepcion,
+                "perdidas": controles[0],
+                "fecha_termino": fecha_termino,
+            })
+        return Response(resultado_selecciones)
     
     @action(detail = False, methods = ['GET'])
     def subproductos_lista(self, request):
@@ -125,13 +173,22 @@ class SeleccionViewSet(viewsets.ModelViewSet):
         desde = datetime.strptime(desde, '%Y-%m-%dT%H:%M:%S.%f')
         hasta = datetime.strptime(hasta, '%Y-%m-%dT%H:%M:%S.%f')
         
-        
-        programas_seleccion = Seleccion.objects.filter(Q(fecha_creacion__gte=desde) & Q(fecha_creacion__lte=hasta))        
+        hoy = now().date()
+        if desde.date() > hoy:
+            programas_seleccion = Seleccion.objects.none()  
+        else:
+            programas_seleccion = Seleccion.objects.filter(
+                Q(fecha_inicio_proceso__gte=desde, fecha_termino_proceso__lte=hasta) |  
+                Q(fecha_termino_proceso__isnull=True, fecha_inicio_proceso__lte=hasta)
+            )
+            
         resultados_informe = []
+        print(f"Fechas: {desde} {hasta}")
         for programa in programas_seleccion:
-            tarjas_seleccionadas = TarjaSeleccionada.objects.filter(seleccion = programa.pk)
+            tarjas_seleccionadas = TarjaSeleccionada.objects.filter(seleccion = programa.pk, fecha_creacion__gte = desde, fecha_creacion__lte = hasta)
             cc_tarja_seleccionada = CCTarjaSeleccionada.objects.filter(tarja_seleccionada__in = tarjas_seleccionadas).first()
             for tarja in tarjas_seleccionadas:
+                print(f"Programa: {programa} tarja: {tarja.fecha_creacion}")
                 kilostarja = (tarja.peso - tarja.tipo_patineta)
                 dic = {
                     "tarja": tarja.codigo_tarja,
@@ -152,7 +209,6 @@ class SeleccionViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['POST'])
     def pdf_kilos_por_operario(self, request):
         operario = request.data.get('operario')
-        print(operario)
         desde = request.data.get('desde').replace('Z', '')
         hasta = request.data.get('hasta').replace('Z', '')
         
@@ -160,25 +216,54 @@ class SeleccionViewSet(viewsets.ModelViewSet):
         hasta = datetime.strptime(hasta, '%Y-%m-%dT%H:%M:%S.%f')
             
         resultados_informe = []
-        programas_seleccion = Seleccion.objects.filter(Q(fecha_creacion__gte=desde) & Q(fecha_creacion__lte=hasta))
-        operario = Operario.objects.get(pk = operario)        
+        hoy = now().date()
+        if desde.date() > hoy:
+            programas_seleccion = Seleccion.objects.none()  
+        else:
+            programas_seleccion = Seleccion.objects.filter(
+                (Q(fecha_inicio_proceso__gte=desde, fecha_termino_proceso__lte=hasta) |  
+                Q(fecha_termino_proceso__isnull=True, fecha_inicio_proceso__lte=hasta)
+                ),
+                operarios__in = [operario]
+            )
         
+        operario = Operario.objects.get(pk = operario)     
         for programa in programas_seleccion:
-            subproducto = SubProductoOperario.objects.filter(seleccion = programa.pk, operario = operario)
+            subproducto = SubProductoOperario.objects.filter(seleccion = programa.pk, operario = operario, fecha_creacion__gte = desde, fecha_creacion__lte = hasta)
+
             for producto in subproducto:
-                pago_x_kilo_operario = SkillOperario.objects.get(operario = operario, tipo_operario = 'seleccion').pago_x_kilo
-                
+                pago_x_kilo_operario = SkillOperario.objects.get(operario = operario, tipo_operario = 'sub_prod').pago_x_kilo
                 dic = {
                     "tarja": f'Sub Producto N° {producto.pk}',
                     "programa": f'{producto.seleccion}',
                     "tipo_resultante": producto.get_tipo_subproducto_display(),
                     "fecha_registro": producto.fecha_creacion,
                     "kilos": producto.peso,
-                    "neto": round(producto.peso * pago_x_kilo_operario)
+                    "neto": round(producto.peso * pago_x_kilo_operario),
+                    "type": "subproducto"
                 }
                 
                 resultados_informe.append(dic)
-        
+
+            # get total kilos seleccinoados
+            operario_select = OperariosEnSeleccion.objects.filter(seleccion = programa.pk, operario = operario).first()
+            kilos_in_prod = DiaDeOperarioSeleccion.objects.filter(operario = operario_select, dia__gte = desde, dia__lte = hasta).aggregate(Sum('kilos_dia'))['kilos_dia__sum'] or 0
+            fecha_seleccion = DiaDeOperarioSeleccion.objects.filter(operario = operario_select, dia__gte = desde, dia__lte = hasta).aggregate(Max('dia'))['dia__max']
+    
+            if kilos_in_prod > 0 and fecha_seleccion:   
+                fecha_seleccion = datetime.combine(fecha_seleccion, time(23, 59))
+                pago_x_kilo_operario = SkillOperario.objects.get(operario = operario, tipo_operario = 'seleccion').pago_x_kilo
+                print(f"Operaio: {operario.nombre} {operario.apellido} Kilos: {kilos_in_prod} Pago: {pago_x_kilo_operario}")
+                dic = {
+                    "tarja": f'Selección N° {programa.pk}',
+                    "programa": f'{programa}',
+                    "tipo_resultante": 'Pepa Seleccionada',
+                    "fecha_registro": fecha_seleccion,
+                    "kilos": kilos_in_prod,
+                    "neto": round(kilos_in_prod * pago_x_kilo_operario),
+                    "type": "seleccion"
+                }
+                resultados_informe.append(dic)
         serializer = PDFInformeKilosXOperarioSerializer(data = resultados_informe, many = True)
         serializer.is_valid(raise_exception=True)
         
@@ -196,26 +281,51 @@ class SeleccionViewSet(viewsets.ModelViewSet):
         
         desde = datetime.strptime(desde, '%Y-%m-%dT%H:%M:%S.%f')
         hasta = datetime.strptime(hasta, '%Y-%m-%dT%H:%M:%S.%f')
-            
+        
         resultados_informe = defaultdict(list)
-        programas_seleccion = Seleccion.objects.filter(Q(fecha_creacion__gte=desde) & Q(fecha_creacion__lte=hasta))     
+        
+        hoy = now().date()
+        if desde.date() > hoy:
+            programas_seleccion = Seleccion.objects.none()  
+        else:
+            programas_seleccion = Seleccion.objects.filter(
+                Q(fecha_inicio_proceso__gte=desde, fecha_termino_proceso__lte=hasta) |  
+                Q(fecha_termino_proceso__isnull=True, fecha_inicio_proceso__lte=hasta)
+            )
+        
+        informe_agrupado = []
         
         for programa in programas_seleccion:
+
             subproductos = SubProductoOperario.objects.filter(seleccion=programa.pk)
-            
             for subproducto in subproductos:
                 resultados_informe[subproducto.operario.id].append(subproducto)
-                
-        informe_agrupado = []
+
+            operarios_seleccion = OperariosEnSeleccion.objects.filter(seleccion = programa.pk, skill_operario = 'seleccion')
+            for operario in operarios_seleccion:
+                kilos_in_prod = DiaDeOperarioSeleccion.objects.filter(operario = operario, dia__gte = desde, dia__lte = hasta).aggregate(Sum('kilos_dia'))['kilos_dia__sum'] or 0
+                pago_por_kilo_operario = SkillOperario.objects.get(operario = operario.operario, tipo_operario = 'seleccion').pago_x_kilo
+                if kilos_in_prod > 0 :
+                    dic = {
+                        "operario": f'{operario.operario.nombre} {operario.operario.apellido}',
+                        "kilos": kilos_in_prod,
+                        "neto": kilos_in_prod * pago_por_kilo_operario,
+                        "detalle": "Selección"
+                    }
+                    informe_agrupado.append(dic)
+
+
+        
         for operario_id, subproductos in resultados_informe.items():
             kilos_totales = sum(subproducto.peso for subproducto in subproductos)
-            pago_x_kilo_operario = SkillOperario.objects.get(operario=subproductos[0].operario, tipo_operario='seleccion').pago_x_kilo
+            pago_x_kilo_operario = SkillOperario.objects.get(operario=subproductos[0].operario, tipo_operario='sub_prod').pago_x_kilo
             pago_neto = kilos_totales * pago_x_kilo_operario
             
             dic = {
                 "operario": f'{subproductos[0].operario.nombre} {subproductos[0].operario.apellido}',
                 "kilos": kilos_totales,
-                "neto": pago_neto
+                "neto": pago_neto,
+                "detalle": "SubProducto"
             }
             informe_agrupado.append(dic)
                 
@@ -284,7 +394,7 @@ class SeleccionViewSet(viewsets.ModelViewSet):
         for producto in subProductos:
             dic = {
                 "operario": f'{producto.operario.nombre} {producto.operario.apellido}',
-                "tipo_producto": f'{producto.get_tipo_subproducto_display}',
+                "tipo_producto": f'{producto.get_tipo_subproducto_display()}',
                 "peso": producto.peso
             }
             
@@ -330,15 +440,13 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                 return Response({ "message": "No se ha encontrado control de calidad"}, status = status.HTTP_400_BAD_REQUEST)
             
             resultados_informe.append(dic)
-            
-            
         
         serializer = PDFDetalleSalidaSeleccionSerializer(data = resultados_informe, many = True)
         serializer.is_valid(raise_exception=True)
         
         return Response({
             "bines": serializer.data,
-            "subproductos": subProductos.values()
+            "subproductos": resultados_subproductos
             }, status = status.HTTP_200_OK)   
 
     def get_laborable_dates(self, start_date, end_date):
@@ -367,28 +475,52 @@ class SeleccionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['POST'])
     def asignar_dias_kilos(self, request, pk=None):
         seleccion = self.get_object()
-        
-        if seleccion.fecha_inicio_proceso and seleccion.fecha_termino_proceso:
+        if seleccion.fecha_inicio_proceso:
+            
             start_date = seleccion.fecha_inicio_proceso
-            end_date = seleccion.fecha_termino_proceso
+            if not seleccion.fecha_termino_proceso:
+                end_date = datetime.now().date()
+            else:
+                end_date = seleccion.fecha_termino_proceso
 
             laborable_dates = self.get_laborable_dates(start_date, end_date)
-            num_laborable_days = len(laborable_dates)
 
             operarios_seleccion_1 = OperariosEnSeleccion.objects.filter(seleccion=seleccion, skill_operario='seleccion')
-            
-            num_operarios_seleccion_1 = operarios_seleccion_1.count()
 
             # Calcular total de kilos input manualmente usando la propiedad kilos_bin
-            total_kilos_input = sum(bin.binbodega.kilos_bin for bin in BinsPepaCalibrada.objects.filter(seleccion=seleccion))
 
-            kilos_por_dia_seleccion_1 = total_kilos_input / (num_laborable_days * num_operarios_seleccion_1) if num_operarios_seleccion_1 > 0 else 0
             for operario in operarios_seleccion_1:
                 for laborable_date in laborable_dates:
+                    total_kilos = TarjaSeleccionada.objects.filter(
+                        seleccion=seleccion,
+                        fecha_creacion__date=laborable_date,
+                        tipo_resultante='2',
+                        esta_eliminado=False
+                    ).annotate(
+                        peso_neto=F('peso') - F('tipo_patineta')  # Restar tipo_patineta del peso
+                    ).aggregate(
+                        total_kilos=Sum('peso_neto')  # Sumar los pesos netos
+                    )['total_kilos'] or 0 
                     DiaDeOperarioSeleccion.objects.update_or_create(
                         operario=operario,
                         dia=laborable_date,
-                        defaults={'kilos_dia': kilos_por_dia_seleccion_1}
+                        defaults={'kilos_dia': total_kilos}
+                    )
+            operarios_seleccion_sub_productos = OperariosEnSeleccion.objects.filter(seleccion=seleccion, skill_operario='sub_prod')
+    
+            for operario in operarios_seleccion_sub_productos:
+                for laborable_date in laborable_dates:
+                    total_kilos = SubProductoOperario.objects.filter(
+                        seleccion=seleccion,
+                        fecha_creacion__date=laborable_date,
+                        operario=operario.operario,
+                    ).aggregate(
+                        total_kilos=Sum('peso')
+                    )['total_kilos'] or 0
+                    DiaDeOperarioSeleccion.objects.update_or_create(
+                        operario=operario,
+                        dia=laborable_date,
+                        defaults={'kilos_dia': total_kilos}
                     )
 
             return Response({'status': 'Días y kilos asignados a operarios'}, status=status.HTTP_201_CREATED)
@@ -535,16 +667,14 @@ class BinsPepaCalibradaViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['POST'])
     def registrar_bins_seleccion(self, request, seleccion_pk=None):
         bins = request.data.get('bins', [])
-
+        
         for bin_data in bins:
+            program_number = bin_data.get('programa').split(' ')[-1]
             pkbinbodega = bin_data.get('id')
             binbodega = get_object_or_404(BinBodega, pk=pkbinbodega)
-            
-            
             bin_obj = BinsPepaCalibrada.objects.create(
                 seleccion_id=seleccion_pk,
-                binbodega=binbodega,
-    
+                binbodega=binbodega
             )
             bin_obj.save()
 
@@ -706,9 +836,6 @@ class BinSubProductoSeleccionViewSet(viewsets.ModelViewSet):
         
         return super().destroy(request, *args, **kwargs)
         
-        
-    
-    
     
 # class OperarioEnSeleccionViewSet(viewsets.ModelViewSet):
 #     queryset = OperariosEnSeleccion.objects.all()

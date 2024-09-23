@@ -20,7 +20,7 @@ class Seleccion(ModeloBaseHistorico):
     observaciones           = models.CharField(max_length=160, blank=True, null = True)
     operarios               = models.ManyToManyField('core.Operario', through='seleccion.OperariosEnSeleccion')
     numero_programa         = models.PositiveIntegerField(default=0)
-    
+    produccion              = models.ForeignKey("produccion.Produccion", on_delete=models.SET_NULL, blank=True, null=True, related_name="selecciones")
 
     class Meta:
         verbose_name = ('Programa de Selección')
@@ -29,7 +29,7 @@ class Seleccion(ModeloBaseHistorico):
 
     def __str__(self):
         if self.numero_programa:
-            return "Seleccion N° %s"% (self.numero_programa)
+            return "Seleccion N° %s"% (self.id)
         else:
             return "Seleccion Sin N° %s"% (self.id)
 
@@ -39,13 +39,11 @@ class BinsPepaCalibrada(ModeloBase):
     binbodega               = models.ForeignKey("bodegas.BinBodega", on_delete=models.CASCADE)
     bin_procesado           = models.BooleanField(default=False)
     fecha_procesado         = models.DateTimeField(blank=True, null = True)
-
     class Meta:
         ordering = ['-fecha_creacion']
         
     def __str__(self):
         return '%s %s'%(self.binbodega, self.bin_procesado)
-
 
 
 class TarjaSeleccionada(ModeloBaseHistorico):

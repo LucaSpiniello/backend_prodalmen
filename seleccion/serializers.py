@@ -50,6 +50,36 @@ class DetalleBinsPepaCalibradaSerializer(serializers.ModelSerializer):
     class Meta:
         model = BinsPepaCalibrada
         fields = '__all__'
+
+class DetalleBinsPorSelecionPorProgramaSerializer(serializers.ModelSerializer):
+    tipo_pepa_calibrada_label = serializers.SerializerMethodField()
+    kilos_fruta = serializers.SerializerMethodField()
+    codigo_tarja = serializers.SerializerMethodField()
+    variedad = serializers.SerializerMethodField()
+    seleccion = serializers.SerializerMethodField()
+    produccion = serializers.SerializerMethodField()
+    
+    def get_variedad(self, obj):
+        return obj.binbodega.variedad
+    
+    def get_codigo_tarja(self, obj):
+        return obj.binbodega.codigo_tarja_bin
+        
+    def get_kilos_fruta(self, obj):
+        return obj.binbodega.kilos_bin
+    
+    def get_tipo_pepa_calibrada_label(self, obj):
+        return obj.binbodega.tipo_binbodega.model
+    
+    def get_seleccion(self, obj):
+        return obj.seleccion
+
+    def get_produccion(self, obj):
+        return obj.seleccion.produccion
+    
+    class Meta:
+        model = BinsPepaCalibrada
+        fields = '__all__'
         
 class SeleccionSerializer(serializers.ModelSerializer):
     estado_programa_label = serializers.SerializerMethodField()
@@ -439,13 +469,14 @@ class PDFInformeKilosXOperarioSerializer(serializers.Serializer):
     programa = serializers.CharField()
     tipo_resultante = serializers.CharField()
     fecha_registro = serializers.DateTimeField()
-    kilos = serializers.IntegerField()
+    kilos = serializers.FloatField()
     neto = serializers.IntegerField()
     
 class PDFInformeOperarioResumidoSerializer(serializers.Serializer):
     operario = serializers.CharField()
-    kilos = serializers.IntegerField()
-    neto = serializers.IntegerField()
+    kilos = serializers.FloatField()
+    neto = serializers.FloatField()
+    detalle = serializers.CharField()
     
     
 class PDFDetalleEntradaSeleccionSerializer(serializers.Serializer):

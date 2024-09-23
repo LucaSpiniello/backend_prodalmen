@@ -10,7 +10,6 @@ class Comercializador(models.Model):
     email_comercializador = models.EmailField(max_length=45, blank=True, null=True)
 
 
-
     class Meta:
 
         verbose_name = ('Comercializador')

@@ -34,7 +34,6 @@ class CCRecepcionMateriaPrima(models.Model):
     fotos_cc = models.ManyToManyField('self', through='FotosCC')
     esta_contramuestra = models.CharField(max_length=1, choices=ESTADO_CONTRAMUESTRA, default='0')
     
-    
     class Meta:
         verbose_name = ('CC Recepcion Mp')
         verbose_name_plural = ('1.0 - CC Recepcion Materia Prima')
@@ -141,9 +140,7 @@ class CCTarjaResultante(ModeloBaseHistorico):
     class Meta:
         verbose_name = ('CC Tarja Resultante Producción')
         verbose_name_plural = ('3. CC Tarjas Resultantes Producción')
-        ordering = ('-pk', '-fecha_creacion')
-     
-        
+        ordering = ('-pk', '-fecha_creacion')        
 
     def __str__(self):
         return "CC %s de la tarja %s"% (self.pk, self.tarja.codigo_tarja)

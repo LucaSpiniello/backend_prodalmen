@@ -460,8 +460,7 @@ class DetalleTarjaResultanteSerializer(serializers.ModelSerializer):
     
     def get_variedad(self, obj):
         try:
-            cc_resultante = CCTarjaResultante.objects.filter(pk = obj.pk).first()
-            
+            cc_resultante = CCTarjaResultante.objects.filter(pk = obj.pk).first() 
             return cc_resultante.get_variedad_display()
         except:
             return 'Sin Variedad'

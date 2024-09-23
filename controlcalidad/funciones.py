@@ -362,9 +362,9 @@ def calculo_final(lista_muestras, lista_merma, lista_descontados, lista_kilos):
         descontado = busca_dic(x['cc_lote'], lista_descontados)
         kilos_desc = busca_dic(x['cc_lote'], lista_kilos)
         
-        print("merma", merma, '\n')
-        print("descontado", descontado, '\n')
-        print("kilos_desc", kilos_desc, '\n')
+        # print("merma", merma, '\n')
+        # print("descontado", descontado, '\n')
+        # print("kilos_desc", kilos_desc, '\n')
 
         netos = calcula_netos_lote(lote.recepcionmp.pk)
         brutos = x['pepa_bruta'] * netos / 100
@@ -400,11 +400,11 @@ def calculo_final(lista_muestras, lista_merma, lista_descontados, lista_kilos):
 def promedio_porcentaje_muestras(lista_muestras):
     netos_totales = 0
     if len(lista_muestras) > 0:
-        basura = [0]
-        pelon = [0]
-        ciega = [0]
-        cascara = [0]
-        pepa_huerto = [0]
+        basura = []
+        pelon = []
+        ciega = []
+        cascara = []
+        pepa_huerto = []
         pepa_bruta = 0
         for x in lista_muestras:
             lote = CCRecepcionMateriaPrima.objects.get(pk=x['cc_lote'])
@@ -418,7 +418,6 @@ def promedio_porcentaje_muestras(lista_muestras):
             brutos = x['pepa_bruta'] * netos / 100
             pepa_bruta += round(brutos, 1)
 
-        
         
         prom_basura = sum(basura)/len(basura)
         prom_pelon = sum(pelon)/len(pelon)
