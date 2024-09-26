@@ -343,7 +343,19 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                 "detalle": "SubProducto"
             }
             informe_agrupado.append(dic)
-                
+
+        informe_final = {}
+
+        for item in informe_agrupado:
+            clave = (item["operario"], item["detalle"])  
+            if clave in informe_final:
+                informe_final[clave]["kilos"] += item["kilos"]
+                informe_final[clave]["neto"] += item["neto"]
+            else:
+                informe_final[clave] = item
+
+        informe_agrupado = list(informe_final.values())
+
         serializer = PDFInformeOperarioResumidoSerializer(data=informe_agrupado, many=True)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
