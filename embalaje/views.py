@@ -9,8 +9,16 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Exists, OuterRef, Q, Sum, Count, Subquery, Max,  F
 from .funciones import *
 from bodegas.funciones import *
-from django.utils.timezone import make_aware, is_naive
+from django.utils.timezone import make_aware, is_naive, now
 from datetime import datetime, timedelta
+# impoer CALIDAD_FRUTA from estados_modelos
+CALIDAD_FRUTA = (
+    ('0', 'Extra N°1'),
+    ('1', 'Supreme'),
+    ('2', 'Whole & Broken'),
+    ('3', 'Sin Calidad'),
+    ('4', 'Whole para Harina'),
+)
 
 class TipoEmbalajeViewSet(viewsets.ModelViewSet):
     queryset = TipoEmbalaje.objects.all()
@@ -254,6 +262,54 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
             return Response({'status': 'Días y kilos asignados a operarios'}, status=status.HTTP_201_CREATED)
         else:
             return Response({'status': 'Fechas de inicio o término no definidas'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['POST'])
+    def pdf_informe_embalaje(self, request):
+        desde = request.data.get('desde').replace('Z', '')
+        hasta = request.data.get('hasta').replace('Z', '')
+        desde = datetime.strptime(desde, '%Y-%m-%dT%H:%M:%S.%f')
+        hasta = datetime.strptime(hasta, '%Y-%m-%dT%H:%M:%S.%f')
+        hoy = now().date()
+        if desde.date() > hoy:
+            programas_embalaje = Embalaje.objects.none()  
+        else:
+            programas_embalaje = Embalaje.objects.filter(
+                Q(fecha_inicio_embalaje__gte=desde, fecha_termino_embalaje__lte=hasta) |  
+                Q(fecha_termino_embalaje__isnull=True, fecha_inicio_embalaje__lte=hasta)
+            )
+            
+        informe_programa = []
+        for programa in programas_embalaje:
+            bins_en_embalaje = FrutaBodega.objects.filter(embalaje = programa)
+            pallets = PalletProductoTerminado.objects.filter(embalaje = programa)
+            variedades_unicas = set([obtener_variedad_embalaje(bin) for bin in bins_en_embalaje])
+            variedad = 'Revueltas' if len(variedades_unicas) > 1 else variedades_unicas.pop()
+            calibres_unicos = set([obtener_calibre_embalaje(bin) for bin in bins_en_embalaje])
+            calibre = 'Indefinido' if len(calibres_unicos) > 1 else calibres_unicos.pop()
+            calidades_unicas = set([obtener_calidad_embalaje(bin) for bin in bins_en_embalaje])
+            calidad = 'MultiCalidades' if len(calidades_unicas) > 1 else calidades_unicas.pop()
+            
+            if calidad != 'MultiCalidades':
+                calidad = dict(CALIDAD_FRUTA).get(calidad)
+            
+            if not pallets:
+                return Response({ "message": "No hay bins cargados aún"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            for pallet in pallets:
+                dic = {
+                    "codigo_pallet": pallet.codigo_pallet,
+                    "variedad": variedad,
+                    "calibre": calibre,
+                    "kilos_fruta": obtener_kilos_fruta_pallet_embalaje(pallet),
+                    "fecha_creacion": pallet.fecha_creacion,
+                    "programa": programa.pk,
+                    "producto": programa.get_tipo_producto_display(),
+                    "calidad": calidad
+                }
+                
+                informe_programa.append(dic)
+        return Response(informe_programa)
+
 
     @action(detail=True, methods=['GET'])
     def lista_operarios_dias(self, request, pk=None):
