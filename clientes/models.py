@@ -3,6 +3,8 @@ from cities_light.models import *
 from core.models import *
 from .estados_modelo import *
 from django.contrib.contenttypes.fields import GenericForeignKey
+#import City, Country
+
 
 
 

@@ -85,6 +85,7 @@ class PalletProductoTerminadoSerializer(serializers.ModelSerializer):
     variedad_programa = serializers.SerializerMethodField()
     calibre_programa = serializers.SerializerMethodField()
     calidad_programa = serializers.SerializerMethodField()
+    peso_inicial =  serializers.SerializerMethodField()
     
     def get_variedad_programa(self, obj):
         return obj.embalaje.get_variedad_display()
@@ -100,6 +101,9 @@ class PalletProductoTerminadoSerializer(serializers.ModelSerializer):
     
     def get_calle_bodega_label(self, obj):
         return obj.get_calle_bodega_display()
+    
+    def get_peso_inicial(self, obj):
+        return obj.peso_inicial
     
     # def get_peso_pallet(self, obj):
     #     total_peso = 0  # Inicializar la variable que almacenará el total del peso
@@ -167,6 +171,7 @@ class EmbalajeSerializer(serializers.ModelSerializer):
     condicion_termino = serializers.SerializerMethodField()
     kilos_ingresados = serializers.SerializerMethodField()
     #metricas_embalaje = serializers.SerializerMethodField()
+    fruta_embalada = serializers.SerializerMethodField()
 
     
     # def get_metricas_embalaje(self, obj):
@@ -294,6 +299,15 @@ class EmbalajeSerializer(serializers.ModelSerializer):
     def get_solicitado_por(self, obj):
         return f'{obj.configurado_por.first_name} {obj.configurado_por.last_name}'
     
+    def get_fruta_embalada(self, obj):
+        pallets = PalletProductoTerminado.objects.filter(embalaje=obj)
+        fruta_total_embalada = 0
+        for i in pallets:
+            if i.peso_inicial:
+                fruta_total_embalada += i.peso_inicial
+            else:
+                fruta_total_embalada += i.peso_total_pallet
+        return fruta_total_embalada
 
     class Meta:
         model = Embalaje

@@ -164,7 +164,6 @@ class BinBodegaViewSet(viewsets.ModelViewSet):
         """
         Apply the default filtering and then apply custom filters.
         """
-        
         queryset = super().filter_queryset(queryset)
         filters = {
             'bodegas': self.request.GET.get('bodegas'),
@@ -271,6 +270,7 @@ class BinBodegaViewSet(viewsets.ModelViewSet):
             resultados.append(dic)
         
         return Response(resultados, status=status.HTTP_200_OK)
+
     
     
   

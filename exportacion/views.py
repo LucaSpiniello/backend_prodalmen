@@ -21,8 +21,11 @@ class PedidoExportacionViewSet(viewsets.ModelViewSet):
         ct = ContentType.objects.get_for_model(pedido_exportacion)
         pedido = Pedido.objects.filter(tipo_pedido = ct, id_pedido = pedido_exportacion.pk).first()
         fruta_en_pedido = FrutaEnPedido.objects.filter(pedido = pedido)
-        
-        resultados = []
+        fruta_solicitada = FrutaFicticia.objects.filter(id_pedido = pedido.pk)
+        if fruta_en_pedido:
+            resultados = []
+        else:
+            resultados = None
         
         for fruta in fruta_en_pedido:
             codigo = obtener_codigo(fruta)
@@ -43,11 +46,25 @@ class PedidoExportacionViewSet(viewsets.ModelViewSet):
             
             resultados.append(dic)
             
+        resultados_fruta_solicitada = []
+        for fruta_solicitada in fruta_solicitada:
+    
+            dic = {
+                "kilos_solicitados": fruta_solicitada.kilos_solicitados,
+                "calibre": fruta_solicitada.get_calibre_display(),
+                "variedad": fruta_solicitada.get_variedad_display(),
+                "calidad": fruta_solicitada.get_calidad_display(),
+                "producto": fruta_solicitada.get_nombre_producto_display(),
+            }
+            
+            resultados_fruta_solicitada.append(dic)
+            
         serializer = PedidoExportacionSerializer(pedido_exportacion)
             
         return Response({
             "pedido_exportacion": serializer.data,
-            "fruta_en_pedido": resultados
+            "fruta_en_pedido": resultados,
+            'fruta_solicitada' : resultados_fruta_solicitada
         })
             
 

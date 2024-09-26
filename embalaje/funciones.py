@@ -443,8 +443,10 @@ def obtener_calidad_id_embalaje(bin):
 
 def obtener_kilos_fruta_pallet_embalaje(pallet):
   kilos = 0
-  for caja in CajasEnPalletProductoTerminado.objects.filter(pallet = pallet):
-    kilos += (caja.peso_x_caja *  caja.cantidad_cajas)
+  if pallet.peso_inicial:
+    kilos += pallet.peso_inicial
+  else:
+    kilos += pallet.peso_total_pallet
     
   return round(kilos, 2)
 

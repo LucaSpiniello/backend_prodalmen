@@ -117,6 +117,7 @@ class PalletProductoTerminado(ModeloBase):
     registrado_por = models.ForeignKey('cuentas.User', on_delete=models.SET_NULL, null=True)
     codigo_pallet = models.CharField(max_length=10, null=True, blank=True)
     estado_pallet = models.CharField(max_length=15, choices=ESTADOS_PALLETS_PRODUCTO_TERMINADO, default = '0')
+    peso_inicial = models.FloatField(null=True, blank=True)
     historia = HistoricalRecords(inherit=True)
 
     

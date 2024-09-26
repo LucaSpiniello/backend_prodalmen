@@ -203,8 +203,28 @@ class DetalleTarjaSeleccionadaSerializer(serializers.ModelSerializer):
         return calibracion.get_variedad_display()
         
     def get_calidad(self, obj):
-        calibracion = CCTarjaSeleccionada.objects.get(tarja_seleccionada=obj)
-        return calibracion.get_calidad_fruta_display()
+        try:
+            calibracion = CCTarjaSeleccionada.objects.get(tarja_seleccionada=obj)
+            if calibracion.tarja_seleccionada.tipo_resultante == '2':
+                if calibracion.picada is not None:
+                    if calibracion.picada < 25 and calibracion.variedad == 'NP':
+                        nueva_calidad = '0'  # Código de 'Extra N°1'
+                    elif calibracion.picada >= 25 or calibracion.variedad != 'NP':
+                        nueva_calidad = '1'  # Código de 'Supreme'
+                    else:
+                        nueva_calidad = calibracion.calidad_fruta
+
+                    if calibracion.calidad_fruta != nueva_calidad:
+                        calibracion.calidad_fruta = nueva_calidad
+                        calibracion.save(update_fields=['calidad_fruta'])
+
+                    return calibracion.get_calidad_fruta_display()
+            
+            # Si no se cumplen las condiciones, retornar la calidad actual
+            return calibracion.get_calidad_fruta_display()
+
+        except CCTarjaSeleccionada.DoesNotExist:
+            return "Sin calidad"
     
     def get_calibre(self, obj):
         calibracion = CCTarjaSeleccionada.objects.get(tarja_seleccionada=obj)
@@ -497,6 +517,7 @@ class PDFDetalleEntradaSeleccionSerializer(serializers.Serializer):
     pepa = serializers.FloatField()
     kilos = serializers.FloatField()
     colectado = serializers.BooleanField()
+    programa_produccion = serializers.CharField()
     
     
 class PDFDetalleSalidaSeleccionSerializer(serializers.Serializer):
@@ -515,6 +536,8 @@ class PDFDetalleSalidaSeleccionSerializer(serializers.Serializer):
     goma = serializers.FloatField()
     pepa = serializers.FloatField()
     kilos = serializers.FloatField()
+    calidad = serializers.CharField()
+    tipo = serializers.CharField()
     
     
 class DiaDeOperarioSeleccionSerializer(serializers.ModelSerializer):

@@ -5,6 +5,7 @@ from recepcionmp.models import *
 from bodegas.models import *
 from django.db.models import Count
 
+from django.contrib.contenttypes.models import ContentType
 
 
 class CCTarjaResultanteProduccionSerializer(serializers.ModelSerializer):
@@ -78,6 +79,7 @@ class DetalleProduccionSerializer(serializers.ModelSerializer):
     lotes_por_procesar = serializers.SerializerMethodField()
     lotes_procesados = serializers.SerializerMethodField()
     condicion_cierre = serializers.SerializerMethodField()
+    hay_bins_en_g2 = serializers.SerializerMethodField()
     
     def get_fecha_inicio_proceso(self, obj):
         if obj.fecha_inicio_proceso:
@@ -118,7 +120,27 @@ class DetalleProduccionSerializer(serializers.ModelSerializer):
             return True
         #print("No valida cierre")
         return False
+
+    def get_hay_bins_en_g2(self, obj):
+        """
+        Verifica si hay bins asociados con Bodega G2 para el programa de producción actual
+        y que tengan el estado '16' (Calibrado x CDC).
+        """
+        id_programa = obj.pk
+        
+        bodega_g2 = BodegaG2.objects.filter(produccion__produccion_id=id_programa)
     
+        bins_en_g2 = BinBodega.objects.filter(
+            tipo_binbodega= ContentType.objects.get_for_model(BodegaG2),  
+            id_binbodega__in=bodega_g2.values_list('id', flat=True), 
+            estado_binbodega = '16',        
+            procesado=False, 
+            ingresado=False,
+            agrupado=False,
+        )
+        
+        return bins_en_g2.exists()
+        
     
     def get_condicion_cierre(self, obj):
         # Pre-fetch related data to minimize database hits.

@@ -53,8 +53,8 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     "razon_social": cliente.razon_social,
                     "despacho_retiro": 'Retiro Cliente' if pedido.pedido.retira_cliente and not sucursal_matriz else sucursal_matriz,
                     "estado_pedido": pedido.get_estado_pedido_display(),
-                    "fecha_creacion": pedido.pedido.fecha_creacion,
-                    "fecha_entrega": pedido.pedido.fecha_entrega,
+                    "fecha_creacion": pedido.pedido.fecha_creacion.strftime('%Y-%m-%d'),
+                    "fecha_entrega": pedido.pedido.fecha_entrega.strftime('%Y-%m-%d'),
                         }
                 resultados.append(dic)
             elif pedido.tipo_pedido.model == 'guiasalidafruta':
@@ -81,7 +81,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     "cliente": cliente_guia,
                     "tipo_guia": pedido.pedido.get_tipo_salida_display(),
                     "despacho_retiro": 'Retiro Cliente' if pedido.pedido.retira_cliente else 'Despacho',
-                    "estado_pedido": pedido.get_estado_guia_salida_display(),
+                    "estado_pedido": pedido.pedido.get_estado_guia_salida_display(),
                     "fecha_creacion": pedido.pedido.fecha_creacion,
                     "fecha_entrega": pedido.pedido.fecha_entrega,
                 }

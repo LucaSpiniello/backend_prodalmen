@@ -18,7 +18,8 @@ from datetime import datetime
 from rest_framework.exceptions import NotFound
 from django.utils.timezone import make_aware, is_naive, now
 from datetime import datetime, timedelta, time
-
+# impoer TIPO_RESULTANTE_SELECCION from estados_modelo
+from .estados_modelo import TIPO_RESULTANTE_SELECCION
 
 
 class SeleccionViewSet(viewsets.ModelViewSet):
@@ -183,17 +184,21 @@ class SeleccionViewSet(viewsets.ModelViewSet):
             )
             
         resultados_informe = []
-        print(f"Fechas: {desde} {hasta}")
+
         for programa in programas_seleccion:
             tarjas_seleccionadas = TarjaSeleccionada.objects.filter(seleccion = programa.pk, fecha_creacion__gte = desde, fecha_creacion__lte = hasta)
             cc_tarja_seleccionada = CCTarjaSeleccionada.objects.filter(tarja_seleccionada__in = tarjas_seleccionadas).first()
             for tarja in tarjas_seleccionadas:
-                print(f"Programa: {programa} tarja: {tarja.fecha_creacion}")
                 kilostarja = (tarja.peso - tarja.tipo_patineta)
+                producto = "Pepa Seleccionada"
+                if tarja.tipo_resultante == "1":
+                    producto = "Descarte Sea"
+                elif tarja.tipo_resultante == "3":
+                    producto = "Whole & Broken para PH"
                 dic = {
                     "tarja": tarja.codigo_tarja,
-                    "programa": f"Selección N° {tarja.pk}",
-                    "producto": f'{"Descarte Sea" if tarja.tipo_resultante == "descarte" else "Pepa Seleccionada"}',
+                    "programa": f"Selección N° {programa.pk}",
+                    "producto": producto,
                     "variedad": f'{cc_tarja_seleccionada.get_variedad_display()}', # type: ignore
                     "calibre": f'{cc_tarja_seleccionada.get_calibre_display()}', # type: ignore
                     "calidad": f'{cc_tarja_seleccionada.get_calidad_fruta_display()}',
@@ -249,7 +254,13 @@ class SeleccionViewSet(viewsets.ModelViewSet):
             operario_select = OperariosEnSeleccion.objects.filter(seleccion = programa.pk, operario = operario).first()
             kilos_in_prod = DiaDeOperarioSeleccion.objects.filter(operario = operario_select, dia__gte = desde, dia__lte = hasta).aggregate(Sum('kilos_dia'))['kilos_dia__sum'] or 0
             fecha_seleccion = DiaDeOperarioSeleccion.objects.filter(operario = operario_select, dia__gte = desde, dia__lte = hasta).aggregate(Max('dia'))['dia__max']
-    
+
+  
+            tarja_seleccionada = TarjaSeleccionada.objects.filter(seleccion = programa.pk, tipo_resultante = '3', fecha_creacion__gte = desde, fecha_creacion__lte = hasta)
+            existe_whole = True if tarja_seleccionada.first() else False 
+            
+            tipo_resultante = 'Whole y Pepa Seleccionada' if existe_whole else 'Pepa Seleccionada'
+
             if kilos_in_prod > 0 and fecha_seleccion:   
                 fecha_seleccion = datetime.combine(fecha_seleccion, time(23, 59))
                 pago_x_kilo_operario = SkillOperario.objects.get(operario = operario, tipo_operario = 'seleccion').pago_x_kilo
@@ -257,7 +268,7 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                 dic = {
                     "tarja": f'Selección N° {programa.pk}',
                     "programa": f'{programa}',
-                    "tipo_resultante": 'Pepa Seleccionada',
+                    "tipo_resultante": tipo_resultante,
                     "fecha_registro": fecha_seleccion,
                     "kilos": kilos_in_prod,
                     "neto": round(kilos_in_prod * pago_x_kilo_operario),
@@ -315,9 +326,13 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                     informe_agrupado.append(dic)
 
 
-        
         for operario_id, subproductos in resultados_informe.items():
-            kilos_totales = sum(subproducto.peso for subproducto in subproductos)
+
+            kilos_totales = sum(
+                subproducto.peso 
+                for subproducto in subproductos 
+                if desde <= subproducto.fecha_creacion <= hasta
+            )
             pago_x_kilo_operario = SkillOperario.objects.get(operario=subproductos[0].operario, tipo_operario='sub_prod').pago_x_kilo
             pago_neto = kilos_totales * pago_x_kilo_operario
             
@@ -337,7 +352,8 @@ class SeleccionViewSet(viewsets.ModelViewSet):
     def pdf_documento_entrada_en_seleccion(self, request, pk=None):
         resultados_informe = []
         bins_en_seleccion = BinsPepaCalibrada.objects.filter(seleccion=pk)
-        
+        seleccion = Seleccion.objects.get(pk=pk)
+        programa_produccion = seleccion.produccion.pk
         for bins in bins_en_seleccion:
             cc_bin = bins.binbodega.cdc_tarja
             codigo_tarja = bins.binbodega.codigo_tarja_bin
@@ -374,7 +390,8 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                 "goma": round(goma_pct, 1),
                 "pepa": round(pepa_pct, 1),
                 "kilos": round(bins.binbodega.kilos_bin, 1),   
-                "colectado": f'{True if cc_bin.estado_cc == "3" else False}'
+                "colectado": f'{True if cc_bin.estado_cc == "3" else False}',
+                'programa_produccion': programa_produccion
             }
             
             resultados_informe.append(dic)
@@ -416,7 +433,10 @@ class SeleccionViewSet(viewsets.ModelViewSet):
             color_pct = (cc_bin.fuera_color / peso_total_muestra) * 100
             goma_pct = (cc_bin.goma / peso_total_muestra) * 100
             pepa_pct = (cc_bin.pepa_sana / peso_total_muestra) * 100
-            
+            calidad = cc_bin.get_calidad_fruta_display()
+            tipo_resultante = cc_bin.tarja_seleccionada.tipo_resultante
+            # Buscar el nombre asociado al código en la tupla TIPO_RESULTANTE_SELECCION
+            tipo = next((nombre for codigo, nombre in TIPO_RESULTANTE_SELECCION if codigo == tipo_resultante), "Tipo desconocido")
             if cc_bin != None:
                 kilosnetos = (bins.peso-bins.tipo_patineta)
                 dic = {
@@ -434,7 +454,9 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                 "color": round(color_pct, 1),
                 "goma": round(goma_pct, 1),
                 "pepa": round(pepa_pct, 1),
-                "kilos": round(kilosnetos,1)   
+                "kilos": round(kilosnetos,1),
+                "calidad": calidad,
+                "tipo": tipo
                 }
             else:
                 return Response({ "message": "No se ha encontrado control de calidad"}, status = status.HTTP_400_BAD_REQUEST)
@@ -494,7 +516,7 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                     total_kilos = TarjaSeleccionada.objects.filter(
                         seleccion=seleccion,
                         fecha_creacion__date=laborable_date,
-                        tipo_resultante='2',
+                        tipo_resultante__in=['2', '3'],
                         esta_eliminado=False
                     ).annotate(
                         peso_neto=F('peso') - F('tipo_patineta')  # Restar tipo_patineta del peso

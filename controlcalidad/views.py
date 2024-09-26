@@ -553,7 +553,6 @@ class CCTarjaSeleccionadaViewSet(viewsets.ModelViewSet):
             return self.queryset
     
     
-    
 class CCBinResultanteViewSet(viewsets.ModelViewSet):
     lookup_field = 'bin_resultante'
     queryset = CCBinResultanteProgramaPH.objects.all()

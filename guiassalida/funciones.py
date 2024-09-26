@@ -12,7 +12,7 @@ def obtener_programa_guia(fruta):
   if fruta.tipo_fruta.model == 'binbodega':
     return get_programa(fruta.fruta)
   elif fruta.tipo_fruta.model == 'palletproductoterminado':
-      return f'Programa Embalaje N° {fruta.fruta.embalaje.pk}'
+      return f'Embalaje N° {fruta.fruta.embalaje.pk}'
     
 def obtener_producto(fruta):
   if fruta.tipo_fruta.model == 'binbodega':

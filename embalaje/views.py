@@ -84,7 +84,6 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
             return Response({ "message": "No hay bins cargados aún"}, status=status.HTTP_400_BAD_REQUEST)
         
         for pallet in pallets:
-            
             dic = {
                 "codigo_pallet": pallet.codigo_pallet,
                 "variedad": variedad,
@@ -140,11 +139,10 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
                 print(f" cajas {pallet.cajasenpalletproductoterminado_set.all()}")
                 for caja in pallet.cajasenpalletproductoterminado_set.all():
                     total_peso += caja.peso_x_caja * caja.cantidad_cajas
-                    cantidad_cajas += caja.cantidad_cajas
-            else:
-                total_peso = 0
-                
-                
+                    cantidad_cajas += caja.cantidad_cajas    
+                    
+            if total_peso == 0:
+                continue
                   
             dic = {
                 "id": pallet.id,
@@ -569,3 +567,15 @@ class CajasEnPalletProductoTerminadoViewSet(viewsets.ModelViewSet):
 class PalletProductoTerminadoParaPedidoViewSet(viewsets.ModelViewSet):
     queryset = PalletProductoTerminado.objects.all()
     serializer_class = PalletProductoTerminadoParaPedidoSerializer
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()  # Obtener el queryset inicial
+        
+        # Filtrar los objetos cuya peso_total_pallet (peso_total_ptt) sea mayor que 0
+        filtered_queryset = [obj for obj in queryset if obj.peso_total_pallet > 0]
+
+        # Serializar los datos filtrados
+        serializer = self.get_serializer(filtered_queryset, many=True)
+        
+        # Retornar la respuesta serializada
+        return Response(serializer.data)

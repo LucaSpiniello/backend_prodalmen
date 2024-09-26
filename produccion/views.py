@@ -34,7 +34,7 @@ class ProduccionViewSet(viewsets.ModelViewSet):
         except:
             return self.queryset
     
-    def get_serializer_class(self):        
+    def get_serializer_class(self):  
         if self.action in ["create", "update", "partial_update", "destroy"]:
             return ProduccionSerializer
         return DetalleProduccionSerializer
@@ -376,6 +376,8 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                         total_kilos=models.Sum(models.F('peso') - models.F('tipo_patineta'))
                     )['total_kilos'] or 0
                     
+                    print(f"total kilos despelonado {total_kilos_despelonado_operario} desde {desde} hasta {hasta}")
+                    
                     operarios_skill_pre_limpia = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='p_limpia')
                 
                     operarios_skill_despelo = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='despelo')
@@ -401,14 +403,16 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                         pago_x_kilo_operario_despelonado = SkillOperario.objects.get(operario=operario_front, tipo_operario='despelo').pago_x_kilo
                     except SkillOperario.DoesNotExist:
                         pago_x_kilo_operario_despelonado = 0
-                    
+                    print(f"kilos despelonado {total_kilos_despelonado_operario} pagando {pago_x_kilo_operario_despelonado}")
                     total_prelimpia = round(pago_x_kilo_operario_prelimpia * total_kilos_pre_limpia_operario, 2)
                     total_despelonada = round(pago_x_kilo_operario_despelonado * total_kilos_despelonado_operario, 2)
-                    
+                    print(f"TOTAL DESPELONADO   {total_despelonada}")
                     if not have_skill_despelo_in_program:
                         total_despelonada = 0
                     if not have_skill_pre_limpia_in_program:
                         total_prelimpia = 0
+                    
+                    print(f"total_despelo {total_despelonada}")
                         
                     if programa.pk not in resultado_seria:
                         resultado_seria[programa.pk] = {
@@ -512,9 +516,7 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                         dia=laborable_date,
                         defaults={'kilos_dia': kilos_dia_actual}                                                                                                        
                     )
-                    
-                    
-                    
+                 
         
             for operario_despelo in operarios_despelo:
                     
@@ -535,6 +537,8 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                     ).aggregate(
                         total_kilos=models.Sum(models.F('peso') - models.F('tipo_patineta'))
                     )['total_kilos'] or 0
+                    
+                    print(f"asignando {kilos_dia_actual} a {operario_despelo} en {laborable_date}")
                     
                     DiaDeOperarioProduccion.objects.filter(
                         operario=operario_despelo,

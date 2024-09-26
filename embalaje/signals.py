@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save, pre_delete, pre_save
+from django.db.models.signals import post_save, pre_delete, pre_save, post_delete
 from django.dispatch import receiver
 from .models import *
 from simple_history.utils import update_change_reason
@@ -58,6 +58,7 @@ def capture_old_values(sender, instance, **kwargs):
         instance._old_instance = old_instance
     except PalletProductoTerminado.DoesNotExist:
         instance._old_instance = None
+
             
 @receiver(post_save, sender=PalletProductoTerminado)
 def set_change_reason(sender, instance, **kwargs):
@@ -118,10 +119,45 @@ def update_change_reason_when_was_deleted(sender, instance, **kwargs):
         update_change_reason(pallet, change_reason)
         pallet.save()  # Guardar para asegurar una nueva entrada de historial
         
-        
 
+@receiver(pre_save, sender=CajasEnPalletProductoTerminado)
+def capture_peso_anterior_cajas(sender, instance, **kwargs):
+    pallet = instance.pallet
+    if not pallet:
+        return
+    
+    # Evitar capturar el peso si ya se ha hecho en este ciclo
+    if hasattr(pallet, '_captured_peso'):
+        return  # Ya capturamos el peso
 
+    # Capturamos el peso total del pallet antes de modificar las cajas
+    pallet._old_peso_total = pallet.peso_total_pallet
+    pallet._captured_peso = True  
+    print(f"Peso total antes de modificar cajas: {pallet._old_peso_total}")
+    
+@receiver(post_save, sender=CajasEnPalletProductoTerminado)
+def actualizar_peso_inicial_post_cajas(sender, instance, **kwargs):
+    pallet = instance.pallet
+    if not pallet:
+        return
 
+    # Peso total después de modificar las cajas
+    peso_actual = pallet.peso_total_pallet
+    print(f"Peso total después de modificar cajas: {peso_actual}")
+    # Si el peso ha disminuido y el peso inicial aún no está definido o es menor
+    print(f"Peso anterior es {pallet._old_peso_total} y peso actual es {peso_actual}")
+    if hasattr(pallet, '_old_peso_total'):
+        print(f"ENTRA")
+        if peso_actual < pallet._old_peso_total:
+            print(f"Peso inicial es {pallet.peso_inicial}")
+            if pallet.peso_inicial is None:
+                print(f"Peso inicial actualizado de {pallet.peso_inicial} a {pallet._old_peso_total}")
+                pallet.peso_inicial = pallet._old_peso_total
+                pallet.save(update_fields=['peso_inicial'])
+    
+    # Marcamos que ya actualizamos el peso en este ciclo
+    pallet._peso_actualizado = True
+                
 
 
 # @receiver(post_save, sender=Embalaje)
@@ -235,4 +271,5 @@ def update_change_reason_when_was_deleted(sender, instance, **kwargs):
     #         instance.tipo_producto = '3'
         
     #     instance.save()
+    
         

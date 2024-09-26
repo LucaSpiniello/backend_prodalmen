@@ -54,9 +54,7 @@ class GuiaSalidaFrutaViewSet(viewsets.ModelViewSet):
         ct = ContentType.objects.get_for_model(guia)
         pedido = Pedido.objects.filter(tipo_pedido = ct, id_pedido = guia.pk).first()
         fruta_pedido = FrutaEnPedido.objects.filter(pedido = pedido)
-        
         resultados = []
-        
         for fruta in fruta_pedido:
             codigo = obtener_codigo(fruta)
             programa = obtener_programa_guia(fruta)
@@ -64,7 +62,8 @@ class GuiaSalidaFrutaViewSet(viewsets.ModelViewSet):
             calidad = obtener_calidad(fruta)
             variedad = obtener_variedad(fruta)
             calibre = obtener_calibre(fruta)
-
+            print(variedad)
+            
             dic = {
                 "codigo": codigo,
                 "programa": programa,

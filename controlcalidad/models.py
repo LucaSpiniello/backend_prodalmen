@@ -184,7 +184,7 @@ class CCTarjaSeleccionada(ModeloBaseHistorico):
     estado_cc               = models.CharField(choices=ESTADO_CC_TARJA_RESULTANTE, default='1', max_length=1)
     variedad                = models.CharField(choices=VARIEDAD, default='---', max_length=3)    
     calibre                 = models.CharField(choices=CALIBRES, default='0', max_length=2)
-    calidad_fruta           = models.CharField(max_length=1, choices=CALIDAD_FRUTA, default='0')
+    calidad_fruta           = models.CharField(max_length=1, choices=CALIDAD_FRUTA, default='3')
     cantidad_muestra        = models.FloatField(choices=CANTIDAD_MUESTRA_SELECCION,blank=True, null=True,default=250.0)
     trozo                   = models.FloatField(blank=True, null=True,default=0.0)
     picada                  = models.FloatField(blank=True, null=True,default=0.0)

@@ -44,6 +44,7 @@ class PedidoExportacionSerializer(serializers.ModelSerializer):
     tipo_despacho_label = serializers.SerializerMethodField()
     solicitado_por_label = serializers.SerializerMethodField()
     id_pedido_padre = serializers.SerializerMethodField()
+    fruta_ficticia = serializers.SerializerMethodField()
     
     
     def get_id_pedido_padre(self, obj):
@@ -78,6 +79,12 @@ class PedidoExportacionSerializer(serializers.ModelSerializer):
             return f'{obj.creado_por.first_name} {obj.creado_por.last_name}'
         else:
             return 'No se identifica quien lo creo'
+    
+    def get_fruta_ficticia(self, obj):
+        from pedidos.serializers import FrutaFicticiaSerializer
+        print("HOLAAAA")
+        frutapedido = obj.fruta_pedido
+        return FrutaFicticiaSerializer(frutapedido, many=True).data
     
 
     class Meta:

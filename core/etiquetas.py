@@ -19,8 +19,8 @@ def etiqueta_produccion(codigo_tarja="", variedad="", pkprograma="", kilos_fruta
     zpl = zpl.format(bodega, codigo_tarja, variedad.upper(), tipo_fruta, fecha, pkprograma, kilos_fruta, calibre, fecha_programa, codigo_tarja)
     #10X10.format(bodega, codigo_tarja, codigo_tarja, variedad.upper(), tipo_fruta, pkprograma, kilos_fruta, calibre, fecha)
     
-    mqttauth = {'username': 'user01', 'password':'Hola.2020'}
-    publicamqtt.single('snabbit/produccion/pesaje', zpl, qos = 1, hostname='192.168.200.22', auth=mqttauth)
+    # mqttauth = {'username': 'user01', 'password':'Hola.2020'}
+    # publicamqtt.single('snabbit/produccion/pesaje', zpl, qos = 1, hostname='192.168.200.22', auth=mqttauth)
     
     # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # s.connect(('10.10.10.114', 9100))
@@ -60,8 +60,8 @@ def etiqueta_seleccion(codigo_tarja="", variedad="", fecha="", pk="", kilos_frut
     #10x10 .format(bodega, codigo_tarja, codigo_tarja, variedad.upper(), tipo_fruta, fecha, pk, kilos_fruta, calibre, calidad)
     
     # Descomentar para deploy
-    mqttauth = {'username': 'user01', 'password':'Hola.2020'}
-    publicamqtt.single('snabbit/seleccion/programa', zpl, qos = 1, hostname='192.168.200.22', auth=mqttauth)
+    # mqttauth = {'username': 'user01', 'password':'Hola.2020'}
+    # publicamqtt.single('snabbit/seleccion/programa', zpl, qos = 1, hostname='192.168.200.22', auth=mqttauth)
     
     # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # s.connect(('10.10.10.114', 9100))

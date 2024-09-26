@@ -58,9 +58,9 @@ class DespachoSerializer(serializers.ModelSerializer):
             }
         elif ct.model == 'pedidoexportacion':
             cliente = ClienteExportacion.objects.get(pk = pedido.cliente.pk)
-            sucursal = SucursalClienteExportacion.objects.filter(cliente = cliente).first(  )
+            sucursal = SucursalClienteExportacion.objects.filter(cliente = cliente).first()
             return {
-                "direccion": sucursal.direccion,
+                "direccion_1": sucursal.direccion_1,
                 "telefono": sucursal.telefono,
                 "correo":  sucursal.email_sucursal
             }
