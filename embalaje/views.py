@@ -223,41 +223,36 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['POST'])
     def asignar_dias_kilos(self, request, pk=None):
-        programa = self.get_object()
-        
+        embalaje = self.get_object()
         # Validar fechas de inicio y término del proceso
-        if programa.fecha_inicio_embalaje and programa.fecha_termino_embalaje:
-            start_date = programa.fecha_inicio_embalaje
-            end_date = programa.fecha_termino_embalaje
-
-            # Obtener las fechas laborables
-            laborable_dates = self.get_laborable_dates(start_date, end_date)
-            num_laborable_days = len(laborable_dates)
-            if num_laborable_days == 0:
-                num_laborable_days = 1
-
+        if embalaje.fecha_inicio_embalaje:
             # Obtener operarios por skill
-            operarios_programaph1 = OperariosEnEmbalaje.objects.filter(programa=programa, skill_operario='embalaje')
-
+            operarios_programaph1 = OperariosEnEmbalaje.objects.filter(programa=embalaje, skill_operario='embalaje')
+            print(f"operarios_programaph1 {operarios_programaph1}")
             # Calcular kilos totales de inputs
-            total_kilos_input = sum(bin.bin_bodega.kilos_bin for bin in FrutaBodega.objects.filter(embalaje=programa))
-            #print(total_kilos_input)
-            # pallets_queryset = PalletProductoTerminado.objects.filter(embalaje=programa)
-            #print(pallets_queryset)
+            start_date = embalaje.fecha_inicio_embalaje
+            if not embalaje.fecha_termino_embalaje:
+                end_date = datetime.now().date()
+            else:
+                end_date = embalaje.fecha_termino_embalaje
 
-            # Calcular kilos totales de outputs
-            # total_kilos_output = sum(pallet.peso_total_pallet for pallet in pallets_queryset) if pallets_queryset.exists() else 0
+            laborable_dates = self.get_laborable_dates(start_date, end_date)
+            # total_kilos_input = sum(bin.bin_bodega.kilos_bin for bin in FrutaBodega.objects.filter(embalaje=embalaje))
 
-
-            kilos_por_dia_programaph1  = total_kilos_input / (num_laborable_days)
             for operario in operarios_programaph1:
                 for laborable_date in laborable_dates:
+                    pallets = PalletProductoTerminado.objects.filter(
+                        embalaje=embalaje,
+                        fecha_creacion__date=laborable_date
+                    )
+
+                    # Sumar manualmente los valores de peso_total_pallet para cada PalletProductoTerminado
+                    total_kilos_dia_operario = sum(pallet.peso_total_pallet for pallet in pallets) or 0
                     DiaDeOperarioEmbalaje.objects.update_or_create(
                         operario=operario,
                         dia=laborable_date,
-                        kilos_dia=kilos_por_dia_programaph1
+                        kilos_dia=total_kilos_dia_operario
                     )
-
 
             return Response({'status': 'Días y kilos asignados a operarios'}, status=status.HTTP_201_CREATED)
         else:
@@ -310,6 +305,90 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
                 informe_programa.append(dic)
         return Response(informe_programa)
 
+    @action(detail=False, methods=['POST'])
+    def pdf_kilos_por_operario(self, request):
+        operario = request.data.get('operario')
+        desde = request.data.get('desde').replace('Z', '')
+        hasta = request.data.get('hasta').replace('Z', '')
+        
+        desde = datetime.strptime(desde, '%Y-%m-%dT%H:%M:%S.%f')
+        hasta = datetime.strptime(hasta, '%Y-%m-%dT%H:%M:%S.%f')
+            
+        resultados_informe = []
+
+        hoy = now().date()
+        if desde.date() > hoy:
+            programas_embalaje = Embalaje.objects.none()
+        else:
+            programas_embalaje = Embalaje.objects.filter(
+                Q(fecha_inicio_embalaje__gte=desde, fecha_termino_embalaje__lte=hasta) |  
+                Q(fecha_termino_embalaje__isnull=True, fecha_inicio_embalaje__lte=hasta),
+                operarios__in = [operario]
+            )
+        operario = Operario.objects.get(pk=operario)
+        for programa in programas_embalaje:
+            pallets = PalletProductoTerminado.objects.filter(embalaje = programa, fecha_creacion__range=(desde, hasta))
+            if not pallets:
+                return Response([])
+            
+            kilos_fruta = sum(pallet.peso_total_pallet for pallet in pallets)
+            pago_embalaje_x_kilo = SkillOperario.objects.get(operario = operario, tipo_operario = 'embalaje').pago_x_kilo
+            neto = kilos_fruta * pago_embalaje_x_kilo
+            dic = {
+                "programa": f'Embalaje N° {programa.pk}',
+                "kilos": kilos_fruta,
+                "neto": round(kilos_fruta * pago_embalaje_x_kilo),
+                "type": "embalaje"
+            }
+            resultados_informe.append(dic)
+        return Response(resultados_informe)
+
+    @action(detail=False, methods=['POST'])
+    def pdf_informe_operario_resumido(self, request):
+        desde = request.data.get('desde').replace('Z', '')
+        hasta = request.data.get('hasta').replace('Z', '')
+        
+        desde = datetime.strptime(desde, '%Y-%m-%dT%H:%M:%S.%f')
+        hasta = datetime.strptime(hasta, '%Y-%m-%dT%H:%M:%S.%f')
+
+        resultados_informe = []
+        hoy = now().date()
+        if desde.date() > hoy:
+            programas_embalaje = Embalaje.objects.none()
+        else:
+            programas_embalaje = Embalaje.objects.filter(
+                Q(fecha_inicio_embalaje__gte=desde, fecha_termino_embalaje__lte=hasta) |  
+                Q(fecha_termino_embalaje__isnull=True, fecha_inicio_embalaje__lte=hasta)
+            )
+        
+        for programa in programas_embalaje:
+            operarios_en_embalaje = OperariosEnEmbalaje.objects.filter(programa=programa, skill_operario='embalaje')
+            for operario in operarios_en_embalaje:
+                kilos_in_prod = DiaDeOperarioEmbalaje.objects.filter(operario=operario, dia__gte=desde, dia__lte=hasta).aggregate(Sum('kilos_dia'))['kilos_dia__sum'] or 0
+                pago_por_kilo_operario = SkillOperario.objects.get(operario=operario.operario, tipo_operario='embalaje').pago_x_kilo
+                if kilos_in_prod > 0:
+                    dic = {
+                        "operario": f'{operario.operario.nombre} {operario.operario.apellido}',
+                        "kilos": kilos_in_prod,
+                        "neto": kilos_in_prod * pago_por_kilo_operario
+                    }
+                    resultados_informe.append(dic)
+        # Agrupar resultados por operario
+        resultados_agrupados = {}
+        for resultado in resultados_informe:
+            operario = resultado['operario']
+            if operario in resultados_agrupados:
+                resultados_agrupados[operario]['kilos'] += resultado['kilos']
+                resultados_agrupados[operario]['neto'] += resultado['neto']
+            else:
+                resultados_agrupados[operario] = resultado
+
+        # Convertir el diccionario agrupado de vuelta a una lista
+        resultados_informe = list(resultados_agrupados.values())
+        return Response(resultados_informe)
+                        
+            
+        
 
     @action(detail=True, methods=['GET'])
     def lista_operarios_dias(self, request, pk=None):

@@ -182,10 +182,10 @@ class BinBodega(ModeloBaseHistorico):
             #         return getattr(bin_con_mas_kilos.tarja, 'get_calidad_display', lambda: 'No disponible')()
             #     return 'No disponible'
         except AttributeError:
-            return 'No tengo calidad'
+            return 'Sin Calidad'
         except Exception as e:
             return f'Error al obtener calidad: {str(e)}'
-        return 'No tengo calidad'
+        return 'Sin Calidad'
 
     @property
     def variedad(self):
@@ -302,7 +302,7 @@ class BinBodega(ModeloBaseHistorico):
         if self.binbodega:
             model_name = self.tipo_binbodega.model
             if model_name in ['bodegag1', 'bodegag2', 'bodegag1reproceso', 'bodegag2reproceso', 'bodegag3', 'bodegag4', 'bodegag5', 'binsubproductoseleccion', 'agrupaciondebinbodega', 'sobrantedeagrupacion',]:
-                return 'Almendra Natural'
+                return 'Almendras'
         
             elif model_name == 'bodegag6':
                 return self.binbodega.programa.get_tipo_resultante_display()
