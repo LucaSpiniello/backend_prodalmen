@@ -276,7 +276,8 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
         informe_programa = []
         for programa in programas_embalaje:
             bins_en_embalaje = FrutaBodega.objects.filter(embalaje = programa)
-            pallets = PalletProductoTerminado.objects.filter(embalaje = programa)
+            pallets = PalletProductoTerminado.objects.filter(embalaje = programa, fecha_creacion__range=(desde, hasta))
+            print(f"pallets {pallets}")
             variedades_unicas = set([obtener_variedad_embalaje(bin) for bin in bins_en_embalaje])
             variedad = 'Revueltas' if len(variedades_unicas) > 1 else variedades_unicas.pop()
             calibres_unicos = set([obtener_calibre_embalaje(bin) for bin in bins_en_embalaje])
@@ -288,7 +289,7 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
                 calidad = dict(CALIDAD_FRUTA).get(calidad)
             
             if not pallets:
-                return Response({ "message": "No hay bins cargados aún"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response([])
             
             for pallet in pallets:
                 dic = {
