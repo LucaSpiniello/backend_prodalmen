@@ -52,6 +52,7 @@ class Embalaje(ModeloBaseHistorico):
     kilos_solicitados       = models.FloatField(default=0.0)
     merma_programa          = models.FloatField(default=0.0)
     operarios               = models.ManyToManyField('core.Operario', through='embalaje.OperariosEnEmbalaje')
+    cliente                 = models.CharField(max_length=100, blank=True)
 
     def lista_tipo_fruta(self):
         return ",".join([str(p) for p in self.fruta_bodega.all()])

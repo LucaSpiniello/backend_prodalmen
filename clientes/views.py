@@ -115,6 +115,34 @@ class ClientesViewSet(viewsets.ViewSet):
                     "movil": cliente.movil if cliente.movil else "Sin Movil"
                 }
                 clientes.append(dic)
+                
+        elif tipo_cliente == "all":
+            for cliente in clientes_exportacion:
+                nombre_fantasia = cliente.nombre_fantasia if cliente.nombre_fantasia else 'Aun no tiene nombre de fantasia'
+                dic = {
+                    "id": cliente.id,
+                    "rut_dni": cliente.dni_cliente,
+                    "razon_social": cliente.razon_social,
+                    "nombre_fantasia": nombre_fantasia,
+                    "pais_ciudad": f'{cliente.pais} / {cliente.ciudad}',
+                    "telefono": cliente.telefono if cliente.telefono else "Sin Telefono",
+                    "movil": cliente.movil if cliente.movil else "Sin Movil"
+                }
+                clientes.append(dic)
+            for cliente in clientes_interno:
+                nombre_region = get_nombre_region(cliente.region)
+                nombre_provincia = get_nombre_provincia(cliente.provincia)
+                nombre_fantasia = cliente.nombre_fantasia if cliente.nombre_fantasia else 'Aun no tiene nombre de fantasia'
+                dic = {
+                    "id": cliente.id,
+                    "rut_dni": cliente.rut_cliente,
+                    "razon_social": cliente.razon_social,
+                    "nombre_fantasia": nombre_fantasia,
+                    "pais_ciudad": f'{nombre_region} / {nombre_provincia}',
+                    "telefono": cliente.telefono if cliente.telefono else "Sin Telefono",
+                    "movil": cliente.movil if cliente.movil else "Sin Movil"
+                }
+                clientes.append(dic)
         else:
             for cliente in clientes_exportacion:
                 nombre_fantasia = cliente.nombre_fantasia if cliente.nombre_fantasia else 'Aun no tiene nombre de fantasia'

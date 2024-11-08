@@ -85,7 +85,7 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
         variedad = 'Revueltas' if len(variedades_unicas) > 1 else variedades_unicas.pop()
         calibres_unicos = set([obtener_calibre_embalaje(bin) for bin in bins_en_embalaje])
         calibre = 'Indefinido' if len(calibres_unicos) > 1 else calibres_unicos.pop()
-    
+        calidad = embalaje.get_calidad_display()
         resultados = []
         
         if not pallets:
@@ -93,9 +93,11 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
         
         for pallet in pallets:
             dic = {
+                "id": pallet.id,
                 "codigo_pallet": pallet.codigo_pallet,
                 "variedad": variedad,
                 "calibre": calibre,
+                "calidad": calidad,
                 "kilos_fruta": obtener_kilos_fruta_pallet_embalaje(pallet),
                 "fecha_creacion": pallet.fecha_creacion
             }
