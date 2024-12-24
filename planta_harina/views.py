@@ -39,7 +39,7 @@ class ProgramaPHViewSet(viewsets.ModelViewSet):
             programa = f'{bin.programa.get_tipo_programa_display().capitalize()} N° {bin.programa.pk}'
             dic = {
                 "bin": bin.codigo_tarja,
-                "programa": programa,
+                "programa": f"Programa {programa.pk}",
                 "kilos": round(bin.peso - bin.tipo_patineta, 2),
                 "fecha_creacion": bin.fecha_creacion
             }
@@ -143,42 +143,154 @@ class ProgramaPHViewSet(viewsets.ModelViewSet):
         )
         return Response({'status': 'Operario registrado en el programa'}, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['POST'])
+    @action(detail=True, methods=['POST'], url_path = 'asignar-dias-kilos')
     def asignar_dias_kilos(self, request, pk=None):
         programa = self.get_object()
         
         # Validar fechas de inicio y término del proceso
-        if programa.fecha_inicio_programa and programa.fecha_termino_programa:
+        if programa.fecha_inicio_programa:
             start_date = programa.fecha_inicio_programa
-            end_date = programa.fecha_termino_programa
-
+            if not programa.fecha_termino_programa:
+                end_date = datetime.now().date()
+            else:
+                end_date = programa.fecha_termino_programa
+                
             # Obtener las fechas laborables
             laborable_dates = self.get_laborable_dates(start_date, end_date)
-            num_laborable_days = len(laborable_dates)
 
             # Obtener operarios por skill
             operarios_programaph1 = OperariosEnProgramaPH.objects.filter(programa=programa, skill_operario='p_harina')
             
-            num_operarios_programaph1 = operarios_programaph1.count()
-
-            # Calcular kilos totales de inputs
-            total_kilos_input = sum(bin.bin_bodega.kilos_bin for bin in BinParaPrograma.objects.filter(programa=programa))
-
-
-            kilos_por_dia_programaph1  = total_kilos_input / (num_laborable_days * num_operarios_programaph1) if num_operarios_programaph1 > 0 else 0
             for operario in operarios_programaph1:
                 for laborable_date in laborable_dates:
+                    bines_resultantes_dia = BinResultantePrograma.objects.filter(programa=programa, fecha_creacion__date=laborable_date)
+                    kilos_dia = bines_resultantes_dia.filter(esta_eliminado=False).aggregate(
+                        total_kilos=Sum(F('peso') - F('tipo_patineta'))
+                    )['total_kilos'] or 0
                     DiaDeOperarioProgramaPH.objects.update_or_create(
                         operario=operario,
                         dia=laborable_date,
-                        kilos_dia=kilos_por_dia_programaph1
+                        kilos_dia=kilos_dia
                     )
-
 
             return Response({'status': 'Días y kilos asignados a operarios'}, status=status.HTTP_201_CREATED)
         else:
             return Response({'status': 'Fechas de inicio o término no definidas'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['POST'])
+    def pdf_kilos_por_operario(self, request):
+        operario = request.data.get('operario')
+        desde = request.data.get('desde').replace('Z', '')
+        hasta = request.data.get('hasta').replace('Z', '')
+        
+        desde = datetime.strptime(desde, '%Y-%m-%dT%H:%M:%S.%f')
+        hasta = datetime.strptime(hasta, '%Y-%m-%dT%H:%M:%S.%f')
+            
+        resultados_informe = []
+        hoy = datetime.now().date()
+        if desde.date() > hoy:
+            programas_p_harina = ProgramaPH.objects.none()
+        else:
+            programas_p_harina = ProgramaPH.objects.filter(
+                Q(fecha_inicio_programa__gte=desde, fecha_termino_programa__lte=hasta) |  
+                Q(fecha_termino_programa__isnull=True, fecha_inicio_programa__lte=hasta),
+                operarios__in = [operario]
+            )
+        operario = Operario.objects.get(pk=operario)
+        for programa in programas_p_harina:
+            bines_resultantes = BinResultantePrograma.objects.filter(programa = programa, fecha_creacion__range=(desde, hasta))
+            if not bines_resultantes:
+                continue
+            
+            kilos_resultantes = sum(bin.peso - bin.tipo_patineta for bin in bines_resultantes)
+            pago_p_harina_por_kilo = SkillOperario.objects.get(operario=operario, tipo_operario='p_harina').pago_x_kilo
+            neto = kilos_resultantes * pago_p_harina_por_kilo
+            dic = {
+                "programa": f"Programa {programa.pk}",
+                "kilos": kilos_resultantes,
+                "pago_por_kilo": pago_p_harina_por_kilo,
+                "neto": round(neto),
+                "type": "p_harina"
+            }
+            resultados_informe.append(dic)
+        return Response(resultados_informe, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['POST'])
+    def pdf_informe_programa(self, request):
+        desde = request.data.get('desde').replace('Z', '')
+        hasta = request.data.get('hasta').replace('Z', '')
+        desde = datetime.strptime(desde, '%Y-%m-%dT%H:%M:%S.%f')
+        hasta = datetime.strptime(hasta, '%Y-%m-%dT%H:%M:%S.%f')
+        hoy = now().date()
+        if desde.date() > hoy:
+            programas_p_harina = ProgramaPH.objects.none()  
+        else:
+            programas_p_harina = ProgramaPH.objects.filter(
+                Q(fecha_inicio_programa__gte=desde, fecha_termino_programa__lte=hasta) |  
+                Q(fecha_termino_programa__isnull=True, fecha_inicio_programa__lte=hasta)
+            )
+        print(f"programas {programas_p_harina}")
+        informe_programa = []
+        for programa in programas_p_harina:
+            bins_terminados = BinResultantePrograma.objects.filter(programa = programa, fecha_creacion__range=(desde, hasta))
+            print(f"bins terminados {bins_terminados}")
+            
+            for bin in bins_terminados:
+                dic = {
+                    "codigo": bin.codigo_tarja,
+                    "programa": f"Programa {programa.pk}",
+                    "kilos_fruta": bin.peso - bin.tipo_patineta
+                }
+                informe_programa.append(dic)
+        return Response(informe_programa)
+            
+
+    @action(detail=False, methods=['POST'])
+    def pdf_informe_operario_resumido(self, request):
+
+        desde = request.data.get('desde').replace('Z', '')
+        hasta = request.data.get('hasta').replace('Z', '')
+        
+        desde = datetime.strptime(desde, '%Y-%m-%dT%H:%M:%S.%f')
+        hasta = datetime.strptime(hasta, '%Y-%m-%dT%H:%M:%S.%f')
+        
+        resultados_informe = []
+        hoy = datetime.now().date()
+        if desde.date() > hoy:
+            programas_p_harina = ProgramaPH.objects.none()
+        else:
+            programas_p_harina = ProgramaPH.objects.filter(
+                Q(fecha_inicio_programa__gte=desde, fecha_termino_programa__lte=hasta) |  
+                Q(fecha_termino_programa__isnull=True, fecha_inicio_programa__lte=hasta)
+            )
+
+        for programa in programas_p_harina:
+            operarios_en_p_harina = OperariosEnProgramaPH.objects.filter(programa = programa, skill_operario="p_harina")
+            for operario in operarios_en_p_harina:
+                kilos_in_prod = DiaDeOperarioProgramaPH.objects.filter(operario=operario, dia__gte=desde, dia__lte=hasta).aggregate(Sum('kilos_dia'))['kilos_dia__sum'] or 0
+                pago_por_kilo_operario = SkillOperario.objects.get(operario=operario.operario, tipo_operario='p_harina').pago_x_kilo
+                if kilos_in_prod > 0:
+                    dic ={
+                        "operario": f'{operario.operario.nombre} {operario.operario.apellido}',
+                        "kilos": kilos_in_prod,
+                        "neto": kilos_in_prod * pago_por_kilo_operario
+                    }
+                    resultados_informe.append(dic)
+                # Agrupar resultados por operario
+        print(f"Doc de salida {resultados_informe}")
+        resultados_agrupados = {}   
+        for resultado in resultados_informe:
+            operario = resultado['operario']
+            if operario in resultados_agrupados:
+                resultados_agrupados[operario]['kilos'] += resultado['kilos']
+                resultados_agrupados[operario]['neto'] += resultado['neto']
+            else:
+                resultados_agrupados[operario] = resultado
+
+        # Convertir el diccionario agrupado de vuelta a una lista
+        resultados_informe = list(resultados_agrupados.values())
+        return Response(resultados_informe)
+        
     @action(detail=True, methods=['GET'])
     def lista_operarios_dias(self, request, pk=None):
         programa = self.get_object()
@@ -446,39 +558,6 @@ class ProcesoPHViewSet(viewsets.ModelViewSet):
     queryset = ProcesoPH.objects.all()
     serializer_class = ProcesoPHSerializer
     
-    # @action(detail=False, methods=['GET'], url_path = 'pdf-procesos')
-    # def pdf_proceso(self, request):
-    #     desde_str = request.query_params.get('desde').replace('Z', '')
-    #     hasta_str = request.query_params.get('hasta').replace('Z', '')
-    #     desde = datetime.strptime(desde_str, '%Y-%m-%dT%H:%M:%S.%f')
-    #     hasta = datetime.strptime(hasta_str, '%Y-%m-%dT%H:%M:%S.%f')
-        
-    #     proceso = ProcesoPH.objects.filter(Q(fecha_creacion__gte=desde) & Q(fecha_creacion__lte=hasta))
-    #     bins_resultantes = BinResultanteProceso.objects.filter(proceso__in = proceso)
-    #     kilos_totales_procesados = bins_resultantes.filter(esta_eliminado=False).aggregate(
-    #         total_kilos=Sum(F('peso') - F('tipo_patineta'))
-    #     )
-    #     print(kilos_totales_procesados)
-        
-    #     resultado = []
-        
-    #     for bin in bins_resultantes:
-    #         proceso = f'{bin.proceso.get_tipo_proceso_display().capitalize()} N° {bin.proceso.pk}'
-    #         dic = {
-    #             "bin": bin.codigo_tarja,
-    #             "programa": proceso,
-    #             "kilos": round(bin.peso - bin.tipo_patineta, 2),
-    #             "fecha_creacion": bin.fecha_creacion
-    #         }
-    #         resultado.append(dic)
-            
-    #     serializer = PDFProgramasPHSerializer(data = resultado, many = True)
-    #     serializer.is_valid(raise_exception=True)
-        
-    #     return Response({
-    #         "kilos_totales": kilos_totales_procesados['total_kilos'],
-    #         "resultado": serializer.data
-    #     })
     
     @action(detail=False, methods=['GET'], url_path='pdf-procesos')
     def pdf_proceso(self, request):
@@ -619,56 +698,39 @@ class ProcesoPHViewSet(viewsets.ModelViewSet):
         )
         return Response({'status': 'Operario registrado en el programa'}, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['POST'])
+    @action(detail=True, methods=['POST'], url_path = 'asignar-dias-kilos')
     def asignar_dias_kilos(self, request, pk=None):
-        programa = self.get_object()
-        
+        proceso = self.get_object()
+        print(f"proceso {proceso}")
         # Validar fechas de inicio y término del proceso
-        if programa.fecha_inicio_proceso and programa.fecha_termino_proceso:
-            start_date = programa.fecha_inicio_proceso
-            end_date = programa.fecha_termino_proceso
-
+        if proceso.fecha_inicio_proceso:
+            start_date = proceso.fecha_inicio_proceso
+            if not proceso.fecha_termino_proceso:
+                end_date = datetime.now().date()
+            else:
+                end_date = proceso.fecha_termino_proceso
+                
             # Obtener las fechas laborables
             laborable_dates = self.get_laborable_dates(start_date, end_date)
-            num_laborable_days = len(laborable_dates)
 
             # Obtener operarios por skill
-            operarios_programaph1 = OperariosEnProcesoPH.objects.filter(programa=programa, skill_operario='p_harina')
-            #operarios_programaph2 = OperariosEnProcesoPH.objects.filter(programa=programa, skill_operario='p_harina')
+            operarios_programaph1 = OperariosEnProcesoPH.objects.filter(programa=proceso, skill_operario='p_harina')
             
-            num_operarios_programaph1 = operarios_programaph1.count()
-            #num_operarios_programaph2 = operarios_programaph2.count()
-
-            # Calcular kilos totales de inputs
-            total_kilos_input = sum(bin.bin_bodega.kilos_bin for bin in BinsParaProceso.objects.filter(proceso=programa))
-
-            # Calcular kilos totales de outputs
-            # total_kilos_output = BinResultanteProceso.objects.filter(proceso=programa).aggregate(
-            #     total_kilos=models.Sum(models.F('peso') - models.F('tipo_patineta'))
-            # )['total_kilos'] or 0
-
-            kilos_por_dia_programaph1  = total_kilos_input / (num_laborable_days * num_operarios_programaph1) if num_operarios_programaph1 > 0 else 0
             for operario in operarios_programaph1:
                 for laborable_date in laborable_dates:
+                    bines_resultantes_dia = BinResultanteProceso.objects.filter(proceso=proceso, fecha_creacion__date=laborable_date)
+                    kilos_dia = bines_resultantes_dia.filter(esta_eliminado=False).aggregate(
+                        total_kilos=Sum(F('peso') - F('tipo_patineta'))
+                    )['total_kilos'] or 0
                     DiaDeOperarioProcesoPH.objects.update_or_create(
                         operario=operario,
                         dia=laborable_date,
-                        kilos_dia=kilos_por_dia_programaph1
+                        kilos_dia=kilos_dia
                     )
-
-            # kilos_por_dia_programaph2 = total_kilos_output / (num_laborable_days * num_operarios_programaph2) if num_operarios_programaph2 > 0 else 0
-            # for operario in operarios_programaph2:
-            #     for laborable_date in laborable_dates:
-            #         DiaDeOperarioProcesoPH.objects.update_or_create(
-            #             operario=operario,
-            #             dia=laborable_date,
-            #             kilos_dia=kilos_por_dia_programaph2
-            #         )
 
             return Response({'status': 'Días y kilos asignados a operarios'}, status=status.HTTP_201_CREATED)
         else:
             return Response({'status': 'Fechas de inicio o término no definidas'}, status=status.HTTP_400_BAD_REQUEST)
-
     @action(detail=True, methods=['GET'])
     def lista_operarios_dias(self, request, pk=None):
         programa = self.get_object()
@@ -862,7 +924,115 @@ class ProcesoPHViewSet(viewsets.ModelViewSet):
 
         return Response({'estado_dias': estado_dias}, status=status.HTTP_200_OK)    
 
+    @action(detail=False, methods=['POST'])
+    def pdf_kilos_por_operario(self, request):
+        operario = request.data.get('operario')
+        desde = request.data.get('desde').replace('Z', '')
+        hasta = request.data.get('hasta').replace('Z', '')
+        
+        desde = datetime.strptime(desde, '%Y-%m-%dT%H:%M:%S.%f')
+        hasta = datetime.strptime(hasta, '%Y-%m-%dT%H:%M:%S.%f')
+            
+        resultados_informe = []
+        hoy = datetime.now().date()
+        if desde.date() > hoy:
+            programas_p_harina = ProcesoPH.objects.none()
+        else:
+            programas_p_harina = ProcesoPH.objects.filter(
+                Q(fecha_inicio_proceso__gte=desde, fecha_termino_proceso__lte=hasta) |  
+                Q(fecha_termino_proceso__isnull=True, fecha_inicio_proceso__lte=hasta),
+                operarios__in = [operario]
+            )
+        operario = Operario.objects.get(pk=operario)
+        for proceso in programas_p_harina:
+            bines_resultantes = BinResultanteProceso.objects.filter(proceso = proceso, fecha_creacion__range=(desde, hasta))
+            if not bines_resultantes:
+                continue
+            
+            kilos_resultantes = sum(bin.peso - bin.tipo_patineta for bin in bines_resultantes)
+            pago_p_harina_por_kilo = SkillOperario.objects.get(operario=operario, tipo_operario='p_harina').pago_x_kilo
+            neto = kilos_resultantes * pago_p_harina_por_kilo
+            dic = {
+                "proceso": f"Proceso {proceso.pk}",
+                "kilos": kilos_resultantes,
+                "pago_por_kilo": pago_p_harina_por_kilo,
+                "neto": round(neto),
+                "type": "p_harina"
+            }
+            resultados_informe.append(dic)
+        return Response(resultados_informe, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['POST'])
+    def pdf_informe_proceso(self, request):
+        desde = request.data.get('desde').replace('Z', '')
+        hasta = request.data.get('hasta').replace('Z', '')
+        desde = datetime.strptime(desde, '%Y-%m-%dT%H:%M:%S.%f')
+        hasta = datetime.strptime(hasta, '%Y-%m-%dT%H:%M:%S.%f')
+        hoy = now().date()
+        if desde.date() > hoy:
+            programas_p_harina = ProcesoPH.objects.none()  
+        else:
+            programas_p_harina = ProcesoPH.objects.filter(
+                Q(fecha_inicio_proceso__gte=desde, fecha_termino_proceso__lte=hasta) |  
+                Q(fecha_termino_proceso__isnull=True, fecha_inicio_proceso__lte=hasta)
+            )
+        informe_programa = []
+        for proceso in programas_p_harina:
+            bins_terminados = BinResultanteProceso.objects.filter(proceso = proceso, fecha_creacion__range=(desde, hasta))
+            print(f"bins terminados {bins_terminados}")
+            
+            for bin in bins_terminados:
+                dic = {
+                    "codigo": bin.codigo_tarja,
+                    "proceso": f"Proceso {proceso.pk}",
+                    "kilos_fruta": bin.peso - bin.tipo_patineta
+                }
+                informe_programa.append(dic)
+        return Response(informe_programa)
+
+    @action(detail=False, methods=['POST'])
+    def pdf_informe_operario_resumido(self, request):
+
+        desde = request.data.get('desde').replace('Z', '')
+        hasta = request.data.get('hasta').replace('Z', '')
+        
+        desde = datetime.strptime(desde, '%Y-%m-%dT%H:%M:%S.%f')
+        hasta = datetime.strptime(hasta, '%Y-%m-%dT%H:%M:%S.%f')
+        
+        resultados_informe = []
+        hoy = datetime.now().date()
+        if desde.date() > hoy:
+            programas_p_harina = ProcesoPH.objects.none()
+        else:
+            programas_p_harina = ProcesoPH.objects.filter(
+                Q(fecha_inicio_proceso__gte=desde, fecha_termino_proceso__lte=hasta) |  
+                Q(fecha_termino_proceso__isnull=True, fecha_inicio_proceso__lte=hasta)
+            )
+
+        for proceso in programas_p_harina:
+            operarios_en_p_harina = OperariosEnProcesoPH.objects.filter(programa = proceso, skill_operario="p_harina")
+            for operario in operarios_en_p_harina:
+                kilos_in_prod = DiaDeOperarioProcesoPH.objects.filter(operario=operario, dia__gte=desde, dia__lte=hasta).aggregate(Sum('kilos_dia'))['kilos_dia__sum'] or 0
+                pago_por_kilo_operario = SkillOperario.objects.get(operario=operario.operario, tipo_operario='p_harina').pago_x_kilo
+                if kilos_in_prod > 0:
+                    dic ={
+                        "operario": f'{operario.operario.nombre} {operario.operario.apellido}',
+                        "kilos": kilos_in_prod,
+                        "neto": kilos_in_prod * pago_por_kilo_operario
+                    }
+                    resultados_informe.append(dic)
+        resultados_agrupados = {}   
+        for resultado in resultados_informe:
+            operario = resultado['operario']
+            if operario in resultados_agrupados:
+                resultados_agrupados[operario]['kilos'] += resultado['kilos']
+                resultados_agrupados[operario]['neto'] += resultado['neto']
+            else:
+                resultados_agrupados[operario] = resultado
+
+        # Convertir el diccionario agrupado de vuelta a una lista
+        resultados_informe = list(resultados_agrupados.values())
+        return Response(resultados_informe)
 
 class BinsParaProcesoViewSet(viewsets.ModelViewSet):
     queryset = BinsParaProceso.objects.all()

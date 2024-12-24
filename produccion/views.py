@@ -189,7 +189,7 @@ class ProduccionViewSet(viewsets.ModelViewSet):
 
             kilos_totales_procesados = round(kilos_totales_procesados or 0, 2)
 
-            for lote in LotesPrograma.objects.filter(produccion__in=queryset):
+            for lote in LotesPrograma.objects.filter(fecha_procesado__range=(desde, hasta)):
                 kilos_fruta = 0
                 envase = EnvasesPatioTechadoExt.objects.get(pk=lote.bodega_techado_ext.pk)
                 cantidad_envases = PatioTechadoExterior.objects.get(pk=envase.guia_patio.pk).envasespatiotechadoext_set.all().count()
@@ -306,6 +306,8 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                             "despelonado": round(total_despelonada,2) if pago_x_kilo_operario_despelonado > 0 else "No Tiene este Skill",
                             "neto": round(total_prelimpia + total_despelonada, 2)
                         }
+                        if resultado_seria[nombre_operario]['neto'] == 0:
+                            del resultado_seria[nombre_operario]
                     else: 
                         resultado_seria[nombre_operario]['kilos_programa'] += round(total_kilos_operario, 2)
                         resultado_seria[nombre_operario]['pre_limpia'] += round(total_prelimpia,2) if pago_x_kilo_operario_prelimpia > 0 else "No Tiene este Skill"

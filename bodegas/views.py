@@ -186,6 +186,7 @@ class BinBodegaViewSet(viewsets.ModelViewSet):
         filtered_queryset = []
         for bodega in bodegas_list:
             filtered_queryset.extend([obj for obj in queryset if obj.codigo_tarja_bin and obj.codigo_tarja_bin.lower().startswith(bodega.lower())])
+            
         return list(set(filtered_queryset)) 
     
     def get_serializer_class(self):        

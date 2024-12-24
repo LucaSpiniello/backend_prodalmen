@@ -230,7 +230,6 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
         if embalaje.fecha_inicio_embalaje:
             # Obtener operarios por skill
             operarios_programaph1 = OperariosEnEmbalaje.objects.filter(programa=embalaje, skill_operario='embalaje')
-            print(f"operarios_programaph1 {operarios_programaph1}")
             # Calcular kilos totales de inputs
             start_date = embalaje.fecha_inicio_embalaje
             if not embalaje.fecha_termino_embalaje:
@@ -332,7 +331,7 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
         for programa in programas_embalaje:
             pallets = PalletProductoTerminado.objects.filter(embalaje = programa, fecha_creacion__range=(desde, hasta))
             if not pallets:
-                return Response([])
+                continue
             
             kilos_fruta = sum(pallet.peso_total_pallet for pallet in pallets)
             pago_embalaje_x_kilo = SkillOperario.objects.get(operario = operario, tipo_operario = 'embalaje').pago_x_kilo
@@ -376,7 +375,6 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
                         "neto": kilos_in_prod * pago_por_kilo_operario
                     }
                     resultados_informe.append(dic)
-        # Agrupar resultados por operario
         resultados_agrupados = {}
         for resultado in resultados_informe:
             operario = resultado['operario']

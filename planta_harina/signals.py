@@ -15,7 +15,6 @@ def vincula_resultante_programaph_bodega_g6(sender, created, instance, **kwargs)
     def random_codigo_tarja(length=6):
         """Genera un código alfanumérico aleatorio para usar como código de tarja."""
         return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
-    
     if created:
         # Calcular los kilos de fruta restando el peso de la patineta
         kilos_fruta = instance.peso - instance.tipo_patineta

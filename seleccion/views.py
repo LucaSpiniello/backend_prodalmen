@@ -342,7 +342,8 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                 "neto": pago_neto,
                 "detalle": "SubProducto"
             }
-            informe_agrupado.append(dic)
+            if kilos_totales > 0:
+                informe_agrupado.append(dic)
 
         informe_final = {}
 
