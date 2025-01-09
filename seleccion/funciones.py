@@ -434,6 +434,22 @@ def calcular_control_sub_productos_tarjas_seleccionadas(pk_selection):
 
     return resultados_informe, resultados_subproductos
     
+def calcular_calidad_tarjas_seleccionadas(pk_selection):
+    kilos_por_calidad = {
+        "Sin Calidad": 0,
+        "Extra N°1": 0,
+        "Supreme": 0,
+        "Whole & Broken": 0,
+    }
+    
+    tarjas = CCTarjaSeleccionada.objects.filter(tarja_seleccionada__seleccion=pk_selection)
+    for tarja in tarjas:
+        calidad = tarja.get_calidad_fruta_display()
+        kilos = tarja.tarja_seleccionada.peso - tarja.tarja_seleccionada.tipo_patineta
+        if calidad in kilos_por_calidad:
+            kilos_por_calidad[calidad] += kilos
+        print(f"calidad: {calidad}, kilos: {kilos}")
+    return kilos_por_calidad
     
 def porcentaje(n1, n2):
     if isinstance(n1, str):

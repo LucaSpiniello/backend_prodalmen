@@ -89,6 +89,7 @@ class SeleccionViewSet(viewsets.ModelViewSet):
             calibres = calcular_kilos_por_calibre_tarjas_seleccionadas(i.pk)
             fruta_resultante = consulta_bins_seleccionados(i.pk)
             controles = calcular_control_sub_productos_tarjas_seleccionadas(i.pk)
+            calidades = calcular_calidad_tarjas_seleccionadas(i.pk)
             fruta_resultante = fruta_resultante['fruta_resultante']
             fecha_termino = i.fecha_termino_proceso
             resultado_selecciones.append({
@@ -101,6 +102,7 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                 "guia_recepcion": guias_recepcion,
                 "perdidas": controles[0],
                 "fecha_termino": fecha_termino,
+                "calidades": calidades
             })
         return Response(resultado_selecciones)
     
