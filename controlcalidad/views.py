@@ -101,7 +101,7 @@ class CCRecepcionMateriaPrimaVBViewSet(viewsets.ModelViewSet):
         cc_aporte_pex = aporte_pex(cc_descuentos, muestra)
         cc_porcentaje_liquidar = porcentaje_a_liquidar(cc_aporte_pex)
         cc_kilos_desc_merma = kilos_descontados_merma(cc_porcentaje_liquidar, muestra)
-        cc_merma_por = merma_porcentual(cc_aporte_pex, cc_porcentaje_liquidar)
+        cc_merma_por = merma_porcentual(cc_aporte_pex)
         cc_calculo_final = calculo_final(muestra, cc_merma_por, cc_descuentos, cc_kilos_desc_merma)
         
         
@@ -237,7 +237,7 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         cc_aporte_pex = aporte_pex(cc_descuentos, muestra)
         cc_porcentaje_liquidar = porcentaje_a_liquidar(cc_aporte_pex)
         cc_kilos_desc_merma = kilos_descontados_merma(cc_porcentaje_liquidar, muestra)
-        cc_merma_por = merma_porcentual(cc_aporte_pex, cc_porcentaje_liquidar)
+        cc_merma_por = merma_porcentual(cc_aporte_pex)
         cc_calculo_final = calculo_final(muestra, cc_merma_por, cc_descuentos, cc_kilos_desc_merma)
         
         
@@ -307,7 +307,7 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
                 cc_aporte_pex = aporte_pex(cc_descuentos, muestra)
                 cc_porcentaje_liquidar = porcentaje_a_liquidar(cc_aporte_pex)
                 cc_kilos_desc_merma = kilos_descontados_merma(cc_porcentaje_liquidar, muestra)
-                cc_merma_por = merma_porcentual(cc_aporte_pex, cc_porcentaje_liquidar)
+                cc_merma_por = merma_porcentual(cc_aporte_pex)
                 produccion = Produccion.objects.filter(
                     lotes__guia_patio__cc_guia__id_guia=id_guia,
                 ).distinct().first()

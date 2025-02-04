@@ -289,14 +289,12 @@ def porcentaje_a_liquidar(list_pex):
     
     for x in list_pex:
         if x['exportable'] > 0:
-            exp_menos_3 = x['exportable'] * 3 / 100
-            exportable = x['exportable'] - exp_menos_3
             
-            cat2_menos_3 =x['cat2'] * 3 / 100
-            cat2 = x['cat2'] - cat2_menos_3
+            cat2 = x['cat2'] 
             
-            des_menos_3 = x['des'] * 3 / 100
-            desechos = x['des'] - des_menos_3
+            desechos = x['des']
+            
+            exportable = x['exportable']
             
             dic = {'cc_lote':x['cc_lote'], 'exportable':exportable, 'cat2':cat2, 'des':desechos}
         else:
@@ -327,15 +325,14 @@ def kilos_descontados_merma(lista_menos_3, lista_muestra):
     return lista
 
 
-def merma_porcentual(lista_pex, lista_menos_3):
+def merma_porcentual(lista_pex):
     lista = []
     
     for x in lista_pex:
-        menos_3 = busca_dic(x['cc_lote'], lista_menos_3)
         
-        exportable = x['exportable'] - menos_3['exportable']
-        cat2 = x['cat2'] - menos_3['cat2']
-        des = x['des'] - menos_3['des']
+        exportable = x['exportable'] 
+        cat2 = x['cat2'] 
+        des = x['des'] 
         
         dic = {'cc_lote':x['cc_lote'], 'exportable':exportable, 'cat2':cat2, 'des':des}
         
