@@ -6,7 +6,7 @@ from django.contrib.auth.models import Group
 class UserSerializer(BaseUserSerializer):
     class Meta(BaseUserSerializer.Meta):
         model = User
-        fields = ('id','email', 'first_name', 'is_staff', 'second_name', 'last_name', 'second_last_name', 'rut', 'celular', 'genero', 'fecha_nacimiento', 'image')  # Añade aquí todos los campos necesarios
+        fields = ('id','email', 'first_name', 'is_staff', 'second_name', 'last_name', 'second_last_name', 'rut', 'celular', 'genero', 'fecha_nacimiento', 'image', 'comercializador')  # Añade aquí todos los campos necesarios
         
 
 class PersonalizacionPerfilSerializer(serializers.ModelSerializer):

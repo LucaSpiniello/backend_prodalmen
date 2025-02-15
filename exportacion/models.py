@@ -38,7 +38,7 @@ class PedidoExportacion(ModeloBaseHistorico):
     tipo_despacho = models.CharField(max_length=1, choices=DESPACHO_EMBALAJE, default='0')
     fecha_facturacion = models.DateField(blank=True, null=True)
     valor_dolar = models.FloatField(default=0.0)
-
+    comercializador = models.CharField(max_length=50, blank=True, null=True)
 
     class Meta:
         verbose_name = 'Pedido Exportacion'

@@ -48,7 +48,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     celular             = models.CharField(max_length=17, blank=True, null=True)
     genero              = models.CharField(max_length=2, choices=GENEROS, default='0')
     fecha_nacimiento    = models.DateField(null=True)
-    
+    comercializador     = models.CharField(max_length=50, blank = True, null = True)
     objects = UserManager()
     
     USERNAME_FIELD = 'email'

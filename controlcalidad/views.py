@@ -15,7 +15,7 @@ from cuentas.models import PersonalizacionPerfil
 from .filtros import *
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
-
+from django.core.mail import EmailMessage, get_connection
 from django.db.models import Sum, Avg, F
 
 class CCRecepcionMateriaPrimaVBViewSet(viewsets.ModelViewSet):
@@ -141,9 +141,7 @@ class CCRecepcionMateriaPrimaVBViewSet(viewsets.ModelViewSet):
             'cc_promedio_porcentaje_cc_pepa_calibradas': cc_promedio_porcentaje_cc_pepa_calibrada,
             'numero_lote': numero_lote,
         })
-         
 
-    
 class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
     search_fields = ['recepcionmp__id']
     filter_backends = (filters.SearchFilter, )
@@ -203,6 +201,40 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         listamuestras = get_list_or_404(CCRendimiento, cc_recepcionmp=ccrecep)
         serializer = CCRendimientoSerializer(listamuestras, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['POST'], url_path='send_mailer')
+    def send_mailer(self, request, pk=None):
+        pdf = request.FILES.get('pdf')
+        email_to = request.data.get('email_to')
+        subject = request.data.get('subject')
+        if not pdf or not email_to or not subject:
+            return Response({"error": "Faltan datos necesarios"}, status=status.HTTP_400_BAD_REQUEST)
+        # Configurar el backend de correo electrónico
+        connection = get_connection(
+            backend='django.core.mail.backends.smtp.EmailBackend',
+            host='smtp.gmail.com',  # Servidor SMTP
+            port=587,               # Puerto SMTP
+            username='prodalmen.no.reply@gmail.com',  # Tu dirección de correo
+            password='lhnniwbdjqfuivbf',        # Tu contraseña de correo
+            use_tls=True,           # Usar TLS
+        )
+
+        # Crear el correo electrónico
+        email = EmailMessage(
+            subject,
+            'Estimad@, se adjunta control de calidad, en el pdf adjunto se muestra toda la informacion relevante.',  # Cuerpo del correo
+            'prodalmen.no.reply@gmail.com',  # Desde
+            [email_to],             # Para
+            connection=connection,  # Usar la conexión configurada
+        )
+
+        # Adjuntar el PDF
+        email.attach('documento.pdf', pdf.read(), 'application/pdf')
+
+        # Enviar el correo
+        email.send()
+
+        return Response({"message": "Correo enviado correctamente"}, status=status.HTTP_200_OK)
     
     @action(detail=True, methods=['GET'])
     def cantidad_muestras_cdc(self, request, pk=None):
@@ -278,7 +310,7 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=False, methods=['POST'], url_path='calculo_final_lotes')
-    def calculo_final_lotes(self, request, pks_lotes=None):
+    def calculo_final_lotes(self, request, pk=None):
         # Convertir la lista de IDs recibida en la URL
         lotes_pks = request.data.get('ids', [])
 
@@ -348,6 +380,61 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         })
         
         
+    @action(detail=False, methods=['GET'])
+    def get_all_info_proyecccion(self, request):
+        comercializador = request.query_params.get('comercializador', None)
+        recepciones = RecepcionMp.objects.all()
+        proyeccion_por_calibre = {}
+        
+        for recepcion in recepciones:
+            if comercializador in recepcion.guiarecepcion.comercializador.nombre:
+                id_guia = recepcion.id
+                muestra = cc_muestras_lotes([recepcion])
+                cc_pepa = cc_pepa_lote([recepcion])
+                cc_descuentos = descuentos_cat2_desechos(cc_pepa, muestra)
+                cc_aporte_pex = aporte_pex(cc_descuentos, muestra)
+                cc_porcentaje_liquidar = porcentaje_a_liquidar(cc_aporte_pex)
+                cc_kilos_desc_merma = kilos_descontados_merma(cc_porcentaje_liquidar, muestra)
+                cc_pepa_calibre_por_lote = cc_pepa_calibres_lote([recepcion])
+                cc_merma_por = merma_porcentual(cc_aporte_pex)
+                cc_calculo_final = calculo_final(muestra, cc_merma_por, cc_descuentos, cc_kilos_desc_merma)
+                exportable = cc_calculo_final['final_exp']
+                calibres = cc_pepa_calibre_por_lote
+                variedad = recepcion.envasesguiarecepcionmp_set.all().first().get_variedad_display()
+
+                for calibre in calibres:
+                    for calibre_nombre, porcentaje in calibre.items():
+                        if calibre_nombre != "cc_lote" and porcentaje > 0:
+                            # Formatear el nombre del calibre
+                            if calibre_nombre.startswith("calibre_") and "_" in calibre_nombre:
+                                # Convertir "calibre_18_20" a "18/20"
+                                partes = calibre_nombre.split("_")
+                                calibre_formateado = f"{partes[1]}/{partes[2]}"
+                            else:
+                                # Dejar igual para "precalibre" o "sin calibre"
+                                calibre_formateado = calibre_nombre
+
+                            # Calcular los kilos exportables para este calibre
+                            kilos_calibre = (porcentaje / 100) * exportable
+                            kilos_calibre_redondeado = round(kilos_calibre, 2)  # Redondear al 2do decimal
+
+                            # Acumular kilos si ya existe un elemento con el mismo calibre y variedad
+                            clave = (calibre_formateado, variedad)
+                            if clave in proyeccion_por_calibre:
+                                proyeccion_por_calibre[clave]['kilos_exportables'] += kilos_calibre_redondeado
+                            else:
+                                proyeccion_por_calibre[clave] = {
+                                    'kilos_exportables': kilos_calibre_redondeado,
+                                    'calibre': calibre_formateado,
+                                    'variedad': variedad
+                                }
+
+        # Convertir el diccionario a una lista
+        resultado_final = list(proyeccion_por_calibre.values())
+        
+        return Response(resultado_final)
+
+            
     @action(detail=True, methods=['POST'])
     def subir_fotos_cc(self, request, pk=None):
         ccrecepcionmp = request.data.get('ccrecepcionmp')
@@ -399,7 +486,7 @@ class CCRendimientoViewSet(viewsets.ModelViewSet):
     def list(self, request, cc_recepcionmp_pk=None):
         queryset = self.queryset.filter(cc_recepcionmp=cc_recepcionmp_pk)
         serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data[::-1])
 
 class CCPepaViewSet(viewsets.ModelViewSet):
     queryset = CCPepa.objects.all()
@@ -424,7 +511,7 @@ class CCPepaViewSet(viewsets.ModelViewSet):
         ccrendimiento = get_object_or_404(CCRendimiento, pk=cc_rendimiento_pk, cc_recepcionmp=ccrecep)
         ccpepa = get_object_or_404(CCPepa, pk=pk, ccrendimiento = ccrendimiento)
         serializer = self.get_serializer(ccpepa)
-        return Response(serializer.data)            
+        return Response(serializer.data)                
 
 class FotosCCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
     search_fields = ['ccrecepcionmp__id']

@@ -28,6 +28,7 @@ class PedidoMercadoInterno(ModeloBaseHistorico):
     fecha_facturacion = models.DateField(blank=True, null=True)
     valor_dolar_fact = models.FloatField(default=0.0)
     numero_factura = models.CharField(max_length=50, blank=True, null=True)
+    comercializador = models.CharField(max_length=50, blank=True, null=True)
 
     class Meta:
         verbose_name = 'Pedido Mercado Interno'

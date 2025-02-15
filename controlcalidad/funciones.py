@@ -464,7 +464,7 @@ def promedio_porcentaje_cc_pepa(lista_cc_pepa):
         return {'mezcla': 0, 'insecto': 0, 'hongo': 0, 'dobles': 0, 'color': 0, 'vana': 0, 'pgoma': 0, 'goma': 0}
     
     
-
+    
 def promedio_porcentaje_calibres(lista_calibres):
     if len(lista_calibres) > 0:
         precalibre = []

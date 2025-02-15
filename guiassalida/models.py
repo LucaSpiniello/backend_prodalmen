@@ -20,6 +20,7 @@ class GuiaSalidaFruta(ModeloBaseHistorico):
     tipo_salida             = models.CharField(max_length=2, choices=TIPOS_GUIA_SALIDA, default='0')
     estado_guia_salida      = models.CharField(max_length=2, choices=ESTADO_GUIA_SALIDA, default='0')
     guia_autorizada         = models.BooleanField(default=False)
+    comercializador = models.CharField(max_length=50, blank=True, null=True)
     
     class Meta:
         verbose_name = 'Guia de Salida Fruta'

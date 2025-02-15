@@ -22,12 +22,12 @@ class PedidoViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['GET'])
     def unificados(self, request):
         tipo_pedido = request.query_params.get('tipo_pedido', None)
+        comercializador = request.query_params.get('comercializador', None)
         pedidos = Pedido.objects.filter(tipo_pedido__model=tipo_pedido).order_by('-fecha_creacion')
         resultados = []
-        
         for pedido in pedidos:
             cliente = pedido.pedido.cliente
-            if pedido.tipo_pedido.model == 'pedidomercadointerno':
+            if pedido.tipo_pedido.model == 'pedidomercadointerno' and pedido.pedido.comercializador == comercializador:
                 sucursal_set_interno = cliente.sucursalclientemercado_set
                 sucursal_matriz = sucursal_set_interno.first().nombre if sucursal_set_interno.exists() else 'No tiene sucursal'
                 dic = {
@@ -40,6 +40,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     "estado_pedido": pedido.get_estado_pedido_display(),
                     "fecha_creacion": pedido.pedido.fecha_creacion,
                     "fecha_entrega": pedido.pedido.fecha_entrega,
+                    "comercializador": pedido.pedido.comercializador,
                         }
                 resultados.append(dic)
             elif pedido.tipo_pedido.model == 'pedidoexportacion':
@@ -55,6 +56,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     "estado_pedido": pedido.get_estado_pedido_display(),
                     "fecha_creacion": pedido.pedido.fecha_creacion.strftime('%Y-%m-%d'),
                     "fecha_entrega": pedido.pedido.fecha_entrega.strftime('%Y-%m-%d'),
+                    "comercializador": pedido.pedido.comercializador,
                         }
                 resultados.append(dic)
             elif pedido.tipo_pedido.model == 'guiasalidafruta':
@@ -84,10 +86,10 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     "estado_pedido": pedido.pedido.get_estado_guia_salida_display(),
                     "fecha_creacion": pedido.pedido.fecha_creacion,
                     "fecha_entrega": pedido.pedido.fecha_entrega,
+                    "comercializador": pedido.pedido.comercializador,
                 }
                             
                 resultados.append(dic)
-
         if tipo_pedido == 'guiasalidafruta':
             serializer = PedidoGuiaSerializer(data = resultados, many=True)
         else:
@@ -97,6 +99,29 @@ class PedidoViewSet(viewsets.ModelViewSet):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['GET'])
+    def all_pedidos(self, request):
+        comercializador = request.query_params.get('comercializador', None)
+        tipos_pedido = ['pedidomercadointerno', 'pedidoexportacion', 'guiasalidafruta']
+        fruta_pedidos = []
+        for tipo_pedido in tipos_pedido:
+            pedidos  = Pedido.objects.filter(tipo_pedido__model=tipo_pedido)
+            
+            for pedido in pedidos:
+                print(pedido.pedido.comercializador, comercializador)
+                if pedido.pedido.comercializador == comercializador:
+                    print("SE ENVIA")
+                    pedido_real = pedido.pedido_real
+                    fruta_ficticia = list(pedido_real.fruta_pedido.all())
+                    for fruta_pedido in fruta_ficticia:   
+                        fruta_pedidos.append({
+                            'kilos_solicitados': fruta_pedido.kilos_solicitados,
+                            'calidad': fruta_pedido.get_calidad_display(),
+                            'calibre': fruta_pedido.get_calibre_display(),
+                            'variedad': fruta_pedido.get_variedad_display(),
+                        })  
+        return Response(fruta_pedidos)
+           
     @action(detail = False, methods = ['DELETE'])
     def eliminar_pedido(self, request):
         tipo_pedido = request.query_params.get('tipo_pedido')

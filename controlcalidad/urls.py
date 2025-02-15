@@ -24,7 +24,6 @@ router.register(r'proceso-planta-harina/cdc-bin-resultante', CCBinResultanteProc
 
 
 
-
 urlpatterns = [
     path(r'', include(router.urls)),
     path(r'', include(muestras.urls)),

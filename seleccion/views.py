@@ -105,7 +105,57 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                 "calidades": calidades
             })
         return Response(resultado_selecciones)
+
+    @action(detail=False, methods=['GET'], url_path='get_all_info_by_comercializador')
+    def get_all_info_by_comercializador(self, request):
+        filtro_comercializador = request.query_params.get('comercializador', None)
+        selecciones = Seleccion.objects.filter(estado_programa='4')
     
+        resultado_final = {}  # Diccionario para acumular los resultados
+
+        for seleccion in selecciones:
+            produccion = seleccion.produccion
+            bins_procesados = BinsPepaCalibrada.objects.filter(seleccion=seleccion)
+            variedad = bins_procesados.first().binbodega.cdc_tarja.get_variedad_display()
+
+            # Obtener calibres y calidades
+            calibres = calcular_kilos_por_calibre_tarjas_seleccionadas(seleccion.pk)
+            calidades = calcular_calidad_tarjas_seleccionadas(seleccion.pk)
+            fruta_resultante = consulta_bins_seleccionados(seleccion.pk)['fruta_resultante']
+            if produccion is not None:
+                primer_lote = produccion.lotes.all().first()
+                
+                if primer_lote and primer_lote.guia_patio and primer_lote.guia_patio.lote_recepcionado:
+                    productor = primer_lote.guia_patio.lote_recepcionado.guiarecepcion.productor.nombre
+                    comercializador = primer_lote.guia_patio.lote_recepcionado.guiarecepcion.comercializador.nombre
+                    print(f"Comercializador: {comercializador} filtro: {filtro_comercializador}")
+                    if comercializador == filtro_comercializador:
+                        # Procesar calibres
+                        for calibre_nombre, kilos_calibre in calibres.items():
+                            if kilos_calibre > 0:  # Solo considerar calibres con kilos mayores a 0
+                                # Procesar calidades para este calibre
+                                for calidad_nombre, kilos_calidad in calidades.items():
+                                    if kilos_calidad > 0:  # Solo considerar calidades con kilos mayores a 0
+                                        # Calcular los kilos para este calibre y calidad
+                                        kilos_finales = min(kilos_calibre, kilos_calidad)  # Tomar el mínimo entre calibre y calidad
+                                        clave = (variedad, calibre_nombre, calidad_nombre)
+
+                                        # Acumular los kilos si ya existe un elemento con la misma variedad, calibre y calidad
+                                        if clave in resultado_final:
+                                            resultado_final[clave]['fruta_resultante'] += kilos_finales
+                                        else:
+                                            resultado_final[clave] = {
+                                                "variedad": variedad,
+                                                "fruta_resultante": kilos_finales,
+                                                "calibre": calibre_nombre,
+                                                "calidad": calidad_nombre
+                                            }
+
+        # Convertir el diccionario a una lista
+        resultado_final_lista = list(resultado_final.values())
+        
+        return Response(resultado_final_lista)
+
     @action(detail = False, methods = ['GET'])
     def subproductos_lista(self, request):
         subproducto = SubProductoOperario.objects.all()

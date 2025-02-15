@@ -116,7 +116,7 @@ class DetalleCCRecepcionMateriaPrimaSerializer(serializers.ModelSerializer):
     variedad = serializers.SerializerMethodField()
     registrado_por_label = serializers.SerializerMethodField()
     email_registrador = serializers.SerializerMethodField()
-    
+    email_productor = serializers.SerializerMethodField()
     comercializador = serializers.SerializerMethodField()
     def get_registrado_por_label(self, obj):
        if obj.cc_registrado_por:
@@ -141,6 +141,9 @@ class DetalleCCRecepcionMateriaPrimaSerializer(serializers.ModelSerializer):
         for envase in obj.recepcionmp.envasesguiarecepcionmp_set.all():
             variedad = envase.get_variedad_display()
         return variedad
+
+    def get_email_productor(self, obj):
+        return obj.recepcionmp.guiarecepcion.productor.email
             
     
     def get_kilos_totales_recepcion(self, obj):

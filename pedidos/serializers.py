@@ -148,6 +148,7 @@ class PedidosUnidosSerializer(serializers.Serializer):
     fecha_creacion = serializers.DateTimeField()
     fecha_entrega = serializers.DateField()
     estado_pedido = serializers.CharField()
+    comercializador = serializers.CharField(allow_null=True) 
     
 class PedidoGuiaSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -158,6 +159,7 @@ class PedidoGuiaSerializer(serializers.Serializer):
     fecha_creacion = serializers.DateTimeField()
     fecha_entrega = serializers.DateField()
     estado_pedido = serializers.CharField()
+    comercializador = serializers.CharField(allow_null=True) 
     
 class FrutaFicticiaSerializer(serializers.ModelSerializer):
     nombre_producto_label = serializers.SerializerMethodField()
