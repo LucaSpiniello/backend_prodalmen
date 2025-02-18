@@ -20,6 +20,7 @@ class PedidoMercadoInternoViewSet(viewsets.ModelViewSet):
         pedido = Pedido.objects.filter(tipo_pedido = ct, id_pedido = pedido_interno.pk).first()
         fruta_en_pedido = FrutaEnPedido.objects.filter(pedido = pedido)
         fruta_solicitada = FrutaFicticia.objects.filter(id_pedido = pedido.pk)
+        print(f'fruta en pedido: {fruta_en_pedido}')
         if fruta_en_pedido:
             resultados = []
         else:
@@ -31,7 +32,9 @@ class PedidoMercadoInternoViewSet(viewsets.ModelViewSet):
             calidad = obtener_calidad(fruta)
             variedad = obtener_variedad(fruta)
             calibre = obtener_calibre(fruta)
-    
+            kilos_fruta = obtener_kilos_fruta(fruta)
+
+
             dic = {
                 "codigo": codigo,
                 "programa": programa,
@@ -39,7 +42,7 @@ class PedidoMercadoInternoViewSet(viewsets.ModelViewSet):
                 "calidad": calidad,
                 "variedad": variedad,
                 "calibre": calibre,
-                "kilos": fruta.cantidad,
+                "kilos": kilos_fruta
             }
             
             resultados.append(dic)

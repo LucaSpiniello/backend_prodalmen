@@ -181,7 +181,7 @@ def get_calidad(bin):
     
 def get_calidad_display(bin):
     if bin.tipo_binbodega.model in ['bodegag3', 'bodegag4', 'bodegag5', 'agrupaciondebinsbodegas']:
-        return bin.binbodega.calidad
+        return bin.binbodega.get_calidad_display()
     return 'Sin Calidad'
     
 def get_kilos_bin(bin):

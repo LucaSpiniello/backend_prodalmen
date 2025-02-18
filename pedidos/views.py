@@ -290,8 +290,7 @@ class FrutaEnPedidoViewSet(viewsets.ModelViewSet):
                     elif diferencia < 0:
                         razon = f"Devolución de {-diferencia} kg por actualización del pedido"
                         print(f"Agregando {-diferencia} kilos al pallet {pallet.codigo_pallet}")
-                        pallet.agregar_cajas_por_kilos(-diferencia, razon, fruta_en_pedido)
-                
+                        pallet.agregar_cajas_por_kilos(-diferencia, razon, fruta_en_pedido)               
 class FrutaFicticaViewSet(viewsets.ModelViewSet):
     queryset = FrutaFicticia.objects.all()
     serializer_class = FrutaFicticiaSerializer

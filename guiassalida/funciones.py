@@ -37,3 +37,10 @@ def obtener_calibre(fruta):
     return get_calibre_display(fruta.fruta)
   elif fruta.tipo_fruta.model == 'palletproductoterminado':
       return f'{fruta.fruta.embalaje.get_calibre_display()}'
+
+def obtener_kilos_fruta(fruta):
+  if fruta.tipo_fruta.model == 'binbodega':
+    return get_kilos_bin(fruta.fruta)
+  elif fruta.tipo_fruta.model == 'palletproductoterminado':
+      return fruta.cantidad
+  return 0

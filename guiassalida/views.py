@@ -62,7 +62,7 @@ class GuiaSalidaFrutaViewSet(viewsets.ModelViewSet):
             calidad = obtener_calidad(fruta)
             variedad = obtener_variedad(fruta)
             calibre = obtener_calibre(fruta)
-            print(variedad)
+            kilos = obtener_kilos_fruta(fruta)
             
             dic = {
                 "codigo": codigo,
@@ -70,7 +70,8 @@ class GuiaSalidaFrutaViewSet(viewsets.ModelViewSet):
                 "producto": producto,
                 "calidad": calidad,
                 "variedad": variedad,
-                "calibre": calibre
+                "calibre": calibre,
+                "kilos": kilos
             }
             
             resultados.append(dic)
