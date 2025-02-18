@@ -351,7 +351,6 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
                     ).annotate(
                         peso_neto=F('peso') - F('tipo_patineta')
                     ).aggregate(total_peso_neto=Sum('peso_neto'))['total_peso_neto']
-                    print(f"peso total {peso_real} programa {produccion}")
                     
                 cc_calculo_final = calculo_final(muestra, cc_merma_por, cc_descuentos, cc_kilos_desc_merma)
                 
@@ -399,9 +398,10 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
                 cc_merma_por = merma_porcentual(cc_aporte_pex)
                 cc_calculo_final = calculo_final(muestra, cc_merma_por, cc_descuentos, cc_kilos_desc_merma)
                 exportable = cc_calculo_final['final_exp']
-                calibres = cc_pepa_calibre_por_lote
                 variedad = recepcion.envasesguiarecepcionmp_set.all().first().get_variedad_display()
-
+                calibres = []
+                calibres.append(promedio_porcentaje_calibres(cc_pepa_calibre_por_lote))
+                calibres = cc_pepa_calibre_por_lote
                 for calibre in calibres:
                     for calibre_nombre, porcentaje in calibre.items():
                         if calibre_nombre != "cc_lote" and porcentaje > 0:

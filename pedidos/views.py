@@ -110,7 +110,6 @@ class PedidoViewSet(viewsets.ModelViewSet):
             for pedido in pedidos:
                 print(pedido.pedido.comercializador, comercializador)
                 if pedido.pedido.comercializador == comercializador:
-                    print("SE ENVIA")
                     pedido_real = pedido.pedido_real
                     fruta_ficticia = list(pedido_real.fruta_pedido.all())
                     for fruta_pedido in fruta_ficticia:   
