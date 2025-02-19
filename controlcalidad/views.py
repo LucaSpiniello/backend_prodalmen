@@ -205,8 +205,7 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['POST'], url_path='send_mailer')
     def send_mailer(self, request, pk=None):
         pdf = request.FILES.get('pdf')
-        # email_to = request.data.get('email_to')
-        email_to = "lucafigarispiniello@gmail.com"
+        email_to = request.data.get('email_to')
         subject = request.data.get('subject')
         id = request.data.get('id')
         if not pdf or not email_to or not subject:
