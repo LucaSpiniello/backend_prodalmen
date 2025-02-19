@@ -205,8 +205,10 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['POST'], url_path='send_mailer')
     def send_mailer(self, request, pk=None):
         pdf = request.FILES.get('pdf')
-        email_to = request.data.get('email_to')
+        # email_to = request.data.get('email_to')
+        email_to = "lucafigarispiniello@gmail.com"
         subject = request.data.get('subject')
+        id = request.data.get('id')
         if not pdf or not email_to or not subject:
             return Response({"error": "Faltan datos necesarios"}, status=status.HTTP_400_BAD_REQUEST)
         # Configurar el backend de correo electrónico
@@ -233,6 +235,7 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
 
         # Enviar el correo
         email.send()
+        CCRecepcionMateriaPrima.objects.filter(pk=id).update(mailEnviado=True)
 
         return Response({"message": "Correo enviado correctamente"}, status=status.HTTP_200_OK)
     

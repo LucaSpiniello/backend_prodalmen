@@ -118,6 +118,7 @@ class DetalleCCRecepcionMateriaPrimaSerializer(serializers.ModelSerializer):
     email_registrador = serializers.SerializerMethodField()
     email_productor = serializers.SerializerMethodField()
     comercializador = serializers.SerializerMethodField()
+    mailEnviado = serializers.SerializerMethodField()
     def get_registrado_por_label(self, obj):
        if obj.cc_registrado_por:
             return f'{obj.cc_registrado_por.first_name} {obj.cc_registrado_por.last_name}'
@@ -144,8 +145,10 @@ class DetalleCCRecepcionMateriaPrimaSerializer(serializers.ModelSerializer):
 
     def get_email_productor(self, obj):
         return obj.recepcionmp.guiarecepcion.productor.email
-            
     
+    def get_mailEnviado(self, obj):
+        return obj.mailEnviado
+            
     def get_kilos_totales_recepcion(self, obj):
         kilos_brutos = obj.recepcionmp.kilos_brutos_1 + obj.recepcionmp.kilos_brutos_2
         kilos_tara = obj.recepcionmp.kilos_tara_1 + obj.recepcionmp.kilos_tara_2

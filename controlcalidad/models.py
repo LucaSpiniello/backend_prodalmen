@@ -33,7 +33,7 @@ class CCRecepcionMateriaPrima(models.Model):
     estado_aprobacion_cc = models.CharField(max_length=1, choices=ESTADO_APROBACION_CC_X_JEFATURA, default='0')
     fotos_cc = models.ManyToManyField('self', through='FotosCC')
     esta_contramuestra = models.CharField(max_length=1, choices=ESTADO_CONTRAMUESTRA, default='0')
-    
+    mailEnviado = models.BooleanField(default=False)
     class Meta:
         verbose_name = ('CC Recepcion Mp')
         verbose_name_plural = ('1.0 - CC Recepcion Materia Prima')
