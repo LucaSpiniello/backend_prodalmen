@@ -162,6 +162,10 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
             return self.queryset
     
     def list(self,request):
+        print("GET CCRecepcionMateriaPrima")
+        print(self.get_queryset())
+        for i in self.get_queryset():
+            print(i.recepcionmp.guiarecepcion)
         queryset= self.get_queryset().exclude(estado_cc='0')
         serializer= self.get_serializer_class()(queryset, many=True)
         return Response(serializer.data)
@@ -194,7 +198,20 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         serializadorcdr.save(cc_recepcionmp=ccrecep)
         return Response(serializadorcdr.data, status=status.HTTP_201_CREATED)
     
-
+    @action(detail=False, methods=['GET'], url_path='get_by_comercializador')
+    def get_by_comercializador(self, request):
+        comercializador = request.query_params.get('comercializador', None)
+        
+        # Filtra CCRecepcionMateriaPrima por comercializador
+        ccrecep = self.get_queryset().filter(
+            recepcionmp__guiarecepcion__comercializador__nombre=comercializador,
+        ).exclude(estado_cc='0')  # Excluir según sea necesario
+        
+        # Serializa el queryset (muchos objetos)
+        serializer = self.get_serializer(ccrecep, many=True)
+        
+        return Response(serializer.data)
+    
     @action(detail=True, methods=['GET'])
     def lista_muestra_lote(self, request, pk=None):
         ccrecep = get_object_or_404(CCRecepcionMateriaPrima, pk=pk)
@@ -205,8 +222,7 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['POST'], url_path='send_mailer')
     def send_mailer(self, request, pk=None):
         pdf = request.FILES.get('pdf')
-        # email_to = request.data.get('email_to')
-        email_to = "lucafigarispiniello@gmail.com"
+        email_to = request.data.get('email_to')
         subject = request.data.get('subject')
         id = request.data.get('id')
         if not pdf or not email_to or not subject:

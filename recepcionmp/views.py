@@ -40,6 +40,14 @@ class GuiaRecepcionMPViewSet(viewsets.ModelViewSet):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
+    @action(detail=False, methods=['GET'], url_path='get_by_comercializador')
+    def get_by_comercializador(self, request):
+        comercializador = request.query_params.get('comercializador', None)
+        print("Comercializador: ", comercializador)
+        guias = self.get_queryset().filter(comercializador__nombre=comercializador)
+        serializer = self.get_serializer(guias, many=True)
+        return Response(serializer.data)
+    
 class RecepcionMpViewSet(viewsets.ModelViewSet):
     queryset = RecepcionMp.objects.all()
     permission_classes = [IsAuthenticated,]
