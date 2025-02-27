@@ -297,7 +297,7 @@ UBICACION_PATIO_TECHADO_EXT = (
     ('1','Sector 1'),
     ('2','Sector 2'),
     ('3','Sector 3'),
-    
+    ('4','Sector 4'),
 )
 
 
