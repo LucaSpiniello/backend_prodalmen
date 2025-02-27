@@ -112,18 +112,23 @@ def cc_pepa_calibres_lote(lista_lotes):
             # cc_rendimiento = cc_rendimiento.order_by('-pk').order_by('-id').first()
             cc_rendimiento = cc_rendimiento.values_list('id', flat=True)
 
-            cc_pepa = CCPepa.objects.filter(cc_rendimiento__in = cc_rendimiento, cc_calibrespepaok = True)[0]
-            lista_calibres.append(cc_pepa.pre_calibre if cc_pepa.pre_calibre is not None else 0)
-            lista_calibres.append(cc_pepa.calibre_18_20 if cc_pepa.calibre_18_20 is not None else 0)
-            lista_calibres.append(cc_pepa.calibre_20_22 if cc_pepa.calibre_20_22 is not None else 0)
-            lista_calibres.append(cc_pepa.calibre_23_25 if cc_pepa.calibre_23_25 is not None else 0)
-            lista_calibres.append(cc_pepa.calibre_25_27 if cc_pepa.calibre_25_27 is not None else 0)
-            lista_calibres.append(cc_pepa.calibre_27_30 if cc_pepa.calibre_27_30 is not None else 0)
-            lista_calibres.append(cc_pepa.calibre_30_32 if cc_pepa.calibre_30_32 is not None else 0)
-            lista_calibres.append(cc_pepa.calibre_32_34 if cc_pepa.calibre_32_34 is not None else 0)
-            lista_calibres.append(cc_pepa.calibre_34_36 if cc_pepa.calibre_34_36 is not None else 0)
-            lista_calibres.append(cc_pepa.calibre_36_40 if cc_pepa.calibre_36_40 is not None else 0)
-            lista_calibres.append(cc_pepa.calibre_40_mas if cc_pepa.calibre_40_mas is not None else 0)
+            cc_pepa = CCPepa.objects.filter(cc_rendimiento__in=cc_rendimiento, cc_calibrespepaok=True)
+            if cc_pepa.exists():  # Verifica si hay resultados
+                cc_pepa = cc_pepa[0]  # Obtén el primer objeto
+                lista_calibres.append(cc_pepa.pre_calibre if cc_pepa.pre_calibre is not None else 0)
+                lista_calibres.append(cc_pepa.calibre_18_20 if cc_pepa.calibre_18_20 is not None else 0)
+                lista_calibres.append(cc_pepa.calibre_20_22 if cc_pepa.calibre_20_22 is not None else 0)
+                lista_calibres.append(cc_pepa.calibre_23_25 if cc_pepa.calibre_23_25 is not None else 0)
+                lista_calibres.append(cc_pepa.calibre_25_27 if cc_pepa.calibre_25_27 is not None else 0)
+                lista_calibres.append(cc_pepa.calibre_27_30 if cc_pepa.calibre_27_30 is not None else 0)
+                lista_calibres.append(cc_pepa.calibre_30_32 if cc_pepa.calibre_30_32 is not None else 0)
+                lista_calibres.append(cc_pepa.calibre_32_34 if cc_pepa.calibre_32_34 is not None else 0)
+                lista_calibres.append(cc_pepa.calibre_34_36 if cc_pepa.calibre_34_36 is not None else 0)
+                lista_calibres.append(cc_pepa.calibre_36_40 if cc_pepa.calibre_36_40 is not None else 0)
+                lista_calibres.append(cc_pepa.calibre_40_mas if cc_pepa.calibre_40_mas is not None else 0)
+            else:
+                # Si no hay resultados, agrega ceros a la lista de calibres
+                lista_calibres.extend([0] * 11)  # 11 ceros para cada calibre
             
             # Calcula pepa_exp
             pepa_exp = sum(lista_calibres)
