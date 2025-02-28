@@ -162,10 +162,6 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
             return self.queryset
     
     def list(self,request):
-        print("GET CCRecepcionMateriaPrima")
-        print(self.get_queryset())
-        for i in self.get_queryset():
-            print(i.recepcionmp.guiarecepcion)
         queryset= self.get_queryset().exclude(estado_cc='0')
         serializer= self.get_serializer_class()(queryset, many=True)
         return Response(serializer.data)
@@ -407,9 +403,14 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         for recepcion in recepciones:
             if comercializador in recepcion.guiarecepcion.comercializador.nombre:
                 cc_lotes = CCRecepcionMateriaPrima.objects.filter(recepcionmp__in=[recepcion])
+                saltar_a_siguiente = False
                 for cc_lote in cc_lotes:
+                    print(f"ESTADO APROBACION ES {cc_lote.estado_aprobacion_cc}")
                     if cc_lote.estado_aprobacion_cc != '1':
-                        continue
+                        saltar_a_siguiente = True
+                        break
+                if saltar_a_siguiente:
+                    continue
                 id_guia = recepcion.id
                 muestra = cc_muestras_lotes([recepcion])
                 cc_pepa = cc_pepa_lote([recepcion])
