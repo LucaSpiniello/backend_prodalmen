@@ -406,6 +406,10 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         
         for recepcion in recepciones:
             if comercializador in recepcion.guiarecepcion.comercializador.nombre:
+                cc_lotes = CCRecepcionMateriaPrima.objects.filter(recepcionmp__in=[recepcion])
+                for cc_lote in cc_lotes:
+                    if cc_lote.estado_aprobacion_cc != '1':
+                        continue
                 id_guia = recepcion.id
                 muestra = cc_muestras_lotes([recepcion])
                 cc_pepa = cc_pepa_lote([recepcion])
