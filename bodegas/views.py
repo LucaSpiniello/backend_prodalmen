@@ -59,7 +59,7 @@ class PatioTechadoExteriorViewset(viewsets.ModelViewSet):
                 queryset = self.queryset
             else:
                 queryset = PatioTechadoExterior.objects.filter(fecha_creacion__year=anio)
-          
+            
             # Subconsulta para verificar si hay algún envase con estado '2' relacionado con el lote
             subquery = EnvasesPatioTechadoExt.objects.filter(
                 guia_patio=OuterRef('pk'),

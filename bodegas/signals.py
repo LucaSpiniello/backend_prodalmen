@@ -10,11 +10,13 @@ import math, random, string
 
 @receiver(post_save, sender=GuiaRecepcionMP)
 def vincular_envases_a_guiapatio_despues_de_cerrar_guia_recepcion(sender, instance, created, **kwargs):
-    if instance.estado_recepcion == '4':
+    if instance.estado_recepcion == '4' and not hasattr(instance, '_signal_executed'):
+        instance._signal_executed = True
+        instance.save()
         ct = ContentType.objects.get_for_model(RecepcionMp)
         pks_lotes = instance.recepcionmp_set.all().values_list('pk', flat=True)
         guiaspatioext = PatioTechadoExterior.objects.filter(tipo_recepcion=ct, id_recepcion__in=pks_lotes)
-
+        
         for guiapatio in guiaspatioext:
             if guiapatio.ubicacion == '0':
                 print("La ubicación es '0', saliendo del signal.")
