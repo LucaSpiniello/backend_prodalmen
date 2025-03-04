@@ -16,7 +16,6 @@ def vincular_envases_a_guiapatio_despues_de_cerrar_guia_recepcion(sender, instan
         ct = ContentType.objects.get_for_model(RecepcionMp)
         pks_lotes = instance.recepcionmp_set.all().values_list('pk', flat=True)
         guiaspatioext = PatioTechadoExterior.objects.filter(tipo_recepcion=ct, id_recepcion__in=pks_lotes)
-        
         for guiapatio in guiaspatioext:
             if guiapatio.ubicacion == '0':
                 print("La ubicación es '0', saliendo del signal.")
@@ -26,8 +25,14 @@ def vincular_envases_a_guiapatio_despues_de_cerrar_guia_recepcion(sender, instan
             if recepcion.guiarecepcion.estado_recepcion != '4':
                 print("La recepción no está en estado '4', saliendo del signal.")
                 continue
+            
+            # check if there is any EnvasesPatioTechadoExt associated with the guia_patio
+            if EnvasesPatioTechadoExt.objects.filter(guia_patio=guiapatio).exists():
+                estado_nuevo = '6'
+                RecepcionMp.objects.filter(pk=recepcion.pk).update(estado_recepcion=estado_nuevo)
+                print("Ya existen envases asociados a la guía de patio, saliendo del signal.")
+                break            
 
-            # Calcular el peso total de la recepción y el peso de los envases
             peso_envases = EnvasesGuiaRecepcionMp.objects.filter(recepcionmp=recepcion).aggregate(
                 peso_envases=Sum(F('envase__peso') * F('cantidad_envases'))
             )['peso_envases'] or 0
