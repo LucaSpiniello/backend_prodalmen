@@ -16,7 +16,7 @@ from embalaje.models import *
 from .funciones import *
 from django.utils.timezone import make_aware, is_naive
 from datetime import datetime, timedelta
-
+from core.etiquetas import etiqueta_produccion
 class ProduccionViewSet(viewsets.ModelViewSet):
     queryset = Produccion.objects.all()
     serializer_class = ProduccionSerializer
@@ -986,6 +986,21 @@ class TarjaResultanteViewSet(viewsets.ModelViewSet):
         else:
             return Response({ 'message': 'No se puede eliminar la tarja'}, status=status.HTTP_400_BAD_REQUEST) 
 
+    @action(detail=True, methods=['PUT', 'PATCH'], url_path='reemprimir_etiqueta')
+    def reemprimir_etiqueta(self, request, produccion_pk=None, pk=None):
+        # call function etiqueta_produccion
+        produccion = get_object_or_404(Produccion, pk=produccion_pk)
+        tarja = get_object_or_404(TarjaResultante, pk=pk)
+        cc_tarja_resultante = CCTarjaResultante.objects.filter(tarja=tarja).first()
+        codigo_tarja = tarja.codigo_tarja
+        variedad = cc_tarja_resultante.get_variedad_display()
+        pk_programa = tarja.produccion.pk
+        kilos_fruta = round(tarja.peso - tarja.tipo_patineta, 2)
+        calibre = cc_tarja_resultante.get_calibre_display()
+        fecha=str(tarja.fecha_creacion)
+        fecha_programa=str(tarja.produccion.fecha_inicio_proceso)
+        etiqueta_produccion(variedad=variedad, codigo_tarja=codigo_tarja, pkprograma=pk_programa, kilos_fruta=kilos_fruta, calibre=calibre, fecha=fecha, fecha_programa=fecha_programa)
+        return Response({ 'message': 'Etiqueta reimpresa con exito'}, status=status.HTTP_200_OK)
 class ReprocesoViewSet(viewsets.ModelViewSet):
     queryset = Reproceso.objects.all()
     serializer_class = ReprocesoSerializer

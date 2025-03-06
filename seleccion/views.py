@@ -20,7 +20,7 @@ from django.utils.timezone import make_aware, is_naive, now
 from datetime import datetime, timedelta, time
 # impoer TIPO_RESULTANTE_SELECCION from estados_modelo
 from .estados_modelo import TIPO_RESULTANTE_SELECCION
-
+from core.etiquetas import etiqueta_seleccion
 
 class SeleccionViewSet(viewsets.ModelViewSet):
     queryset = Seleccion.objects.all()
@@ -813,6 +813,23 @@ class TarjaSeleccionadaViewSet(viewsets.ModelViewSet):
         else:
             return Response({ 'message': 'No se puede eliminar la tarja una vez se a calibrado '}, status=status.HTTP_400_BAD_REQUEST)    
     
+    @action(detail=True, methods=['PUT', 'PATCH'], url_path='reimprimir_codigo')
+    def reimprimir_codigo(self, request, seleccion_pk=None, pk=None):
+        tarja = get_object_or_404(self.get_queryset(), pk=pk)
+        tarja_seleccionada = TarjaSeleccionada.objects.get(pk=pk)
+        cc_tarja_seleccionada = CCTarjaSeleccionada.objects.get(tarja_seleccionada=tarja)
+        codigo_tarja = tarja.codigo_tarja
+        variedad = cc_tarja_seleccionada.get_variedad_display()
+        kilos_fruta = tarja_seleccionada.peso - tarja_seleccionada.tipo_patineta
+        calibre = cc_tarja_seleccionada.get_calibre_display()
+        calidad = cc_tarja_seleccionada.get_calidad_fruta_display()
+        fecha = str(tarja.fecha_creacion)
+        fecha_programa = str(tarja.seleccion.fecha_inicio_proceso)
+
+        tipo_fruta = TIPO_RESULTANTE_SELECCION[int(tarja_seleccionada.tipo_resultante)-1][1]
+        
+        etiqueta_seleccion(codigo_tarja=codigo_tarja, variedad=variedad, fecha= fecha, pk=seleccion_pk, kilos_fruta=kilos_fruta, calibre=calibre, calidad=calidad, fecha_programa=fecha_programa, tipo_fruta=tipo_fruta)
+        return Response({ 'message': 'Etiqueta reimpresa con exito'}, status=status.HTTP_200_OK)
 
 class SubProductoOperarioViewSet(viewsets.ModelViewSet):
     queryset = SubProductoOperario.objects.all()

@@ -3,7 +3,6 @@ import paho.mqtt.publish as publicamqtt
 import socket
 
 def etiqueta_produccion(codigo_tarja="", variedad="", pkprograma="", kilos_fruta="", calibre="", fecha="", fecha_programa=""):
-    
     bodega = '2' if 'G2-' in codigo_tarja else '1'
     tipo_fruta = 'Calibrada' if 'G2-' in codigo_tarja else 'Borrel'
     fecha = fecha.split(' ')
@@ -29,7 +28,8 @@ def etiqueta_produccion(codigo_tarja="", variedad="", pkprograma="", kilos_fruta
     # s.send(zpl.encode())
     # s.close()
 
-def etiqueta_seleccion(codigo_tarja="", variedad="", fecha="", pk="", kilos_fruta="", calibre="", calidad="", fecha_programa="", tipo_fruta=None):
+def etiqueta_seleccion(codigo_tarja="", variedad="", fecha="", pk="", kilos_fruta="", calibre="", calidad="", fecha_programa="", tipo_fruta=""):
+    print(f"codigo_tarja: {codigo_tarja} variedad: {variedad} fecha: {fecha} pk: {pk} kilos_fruta: {kilos_fruta} calibre: {calibre} calidad: {calidad} fecha_programa: {fecha_programa} tipo_fruta: {tipo_fruta}")
     if codigo_tarja.startswith('G4-'):
         bodega = '4'
     elif codigo_tarja.startswith('G3-'):

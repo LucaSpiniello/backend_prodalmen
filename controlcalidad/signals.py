@@ -12,7 +12,7 @@ from core.funciones_redis import *
 from core.etiquetas import etiqueta_produccion, etiqueta_seleccion
 from django.utils import timezone
 from produccion.models import TarjaResultante, TarjaResultanteReproceso
-
+from seleccion.estados_modelo import TIPO_RESULTANTE_SELECCION
 
 #### INICIO SIGNALS DE CONTROL DE APROBACION LOTES EN RECEPCION ###
 
@@ -244,7 +244,9 @@ def actualizar_info_validada_cdc_tarja_seleccionada_en_bodega(sender, instance, 
             )
             datos_tarja = tarja.first()
             kilosnetos = datos_tarja.seleccion.peso - datos_tarja.seleccion.tipo_patineta
-            etiqueta_seleccion(variedad=instance.get_variedad_display(), codigo_tarja=datos_tarja.seleccion.codigo_tarja, pk=datos_tarja.seleccion.seleccion.pk, kilos_fruta=kilosnetos, calibre=instance.get_calibre_display(),calidad=instance.get_calidad_fruta_display(), fecha=str(datos_tarja.fecha_creacion), fecha_programa=str(datos_tarja.seleccion.seleccion.fecha_inicio_proceso))
+            tipo_resultante = TIPO_RESULTANTE_SELECCION[int(resultante)-1][1]
+            
+            etiqueta_seleccion(variedad=instance.get_variedad_display(), codigo_tarja=datos_tarja.seleccion.codigo_tarja, pk=datos_tarja.seleccion.seleccion.pk, kilos_fruta=kilosnetos, calibre=instance.get_calibre_display(),calidad=instance.get_calidad_fruta_display(), fecha=str(datos_tarja.fecha_creacion), fecha_programa=str(datos_tarja.seleccion.seleccion.fecha_inicio_proceso), tipo_fruta=tipo_resultante)
         elif resultante == '1':
             bodega =  BodegaG3.objects.filter(seleccion=instance.tarja_seleccionada.pk).first()
             tarja = BodegaG3.objects.filter(seleccion=instance.tarja_seleccionada.pk)
@@ -262,7 +264,8 @@ def actualizar_info_validada_cdc_tarja_seleccionada_en_bodega(sender, instance, 
             )
             datos_tarja = tarja.first()
             kilosnetos = datos_tarja.seleccion.peso - datos_tarja.seleccion.tipo_patineta
-            etiqueta_seleccion(variedad=instance.get_variedad_display(), codigo_tarja=datos_tarja.seleccion.codigo_tarja, pk=datos_tarja.seleccion.seleccion.pk, kilos_fruta=kilosnetos, calibre=instance.get_calibre_display(),calidad=instance.get_calidad_fruta_display(), fecha=str(datos_tarja.fecha_creacion), fecha_programa=str(datos_tarja.seleccion.seleccion.fecha_inicio_proceso))
+            tipo_resultante = TIPO_RESULTANTE_SELECCION[int(resultante)-1][1]
+            etiqueta_seleccion(variedad=instance.get_variedad_display(), codigo_tarja=datos_tarja.seleccion.codigo_tarja, pk=datos_tarja.seleccion.seleccion.pk, kilos_fruta=kilosnetos, calibre=instance.get_calibre_display(),calidad=instance.get_calidad_fruta_display(), fecha=str(datos_tarja.fecha_creacion), fecha_programa=str(datos_tarja.seleccion.seleccion.fecha_inicio_proceso), tipo_fruta=tipo_resultante)
             
         elif resultante == '3':
             bodega =  BodegaG5.objects.filter(seleccion=instance.tarja_seleccionada.pk).first()
@@ -274,7 +277,8 @@ def actualizar_info_validada_cdc_tarja_seleccionada_en_bodega(sender, instance, 
             )
             datos_tarja = tarja.first()
             kilosnetos = datos_tarja.seleccion.peso - datos_tarja.seleccion.tipo_patineta
-            etiqueta_seleccion(variedad=instance.get_variedad_display(), codigo_tarja=datos_tarja.seleccion.codigo_tarja, pk=datos_tarja.seleccion.seleccion.pk, kilos_fruta=kilosnetos, calibre=instance.get_calibre_display(),calidad=instance.get_calidad_fruta_display(), fecha=str(datos_tarja.fecha_creacion), fecha_programa=str(datos_tarja.seleccion.seleccion.fecha_inicio_proceso))
+            tipo_resultante = TIPO_RESULTANTE_SELECCION[int(resultante)-1][1]
+            etiqueta_seleccion(variedad=instance.get_variedad_display(), codigo_tarja=datos_tarja.seleccion.codigo_tarja, pk=datos_tarja.seleccion.seleccion.pk, kilos_fruta=kilosnetos, calibre=instance.get_calibre_display(),calidad=instance.get_calidad_fruta_display(), fecha=str(datos_tarja.fecha_creacion), fecha_programa=str(datos_tarja.seleccion.seleccion.fecha_inicio_proceso), tipo_fruta=tipo_resultante)
             ct = ContentType.objects.get_for_model(bodega)
             BinBodega.objects.get_or_create(tipo_binbodega = ct, id_binbodega = bodega.pk, estado_binbodega = '16')
         
