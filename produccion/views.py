@@ -336,7 +336,7 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                     if not have_skill_ayud_patio_in_program:
                         total_ayud_patio = 0
                     
-                    final_neto = round(pago_x_kilo_operario_prelimpia * total_prelimpia + pago_x_kilo_operario_despelonado * total_despelonada + pago_x_kilo_operario_descascarado * total_descascarado  + pago_x_kilo_operario_ayud_patio * total_ayud_patio, 2)
+                    final_neto = round(total_ayud_patio + total_prelimpia + total_descascarado + total_despelonada, 2)
                     if nombre_operario not in resultado_seria:
                         resultado_seria[nombre_operario] = {
                             "numero_programa": programa.pk,
@@ -492,14 +492,13 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                     except SkillOperario.DoesNotExist:
                         pago_x_kilo_operario_ayud_patio = 0
                     
-                    print(f"kilos despelonado {total_kilos_despelonado_operario} pagando {pago_x_kilo_operario_despelonado}")
+                    print(f"kilos ayuda patio {total_kilos_ayud_patio_operario} pagando {pago_x_kilo_operario_ayud_patio} have skill {have_skill_ayud_patio_in_program}")
                     total_prelimpia = round(pago_x_kilo_operario_prelimpia * total_kilos_pre_limpia_operario, 2)
                     total_despelonada = round(pago_x_kilo_operario_despelonado * total_kilos_despelonado_operario, 2)
                     total_descascarado = round(pago_x_kilo_operario_descascarado * total_kilos_descascarado_operario, 2)
                     total_ayud_patio = round(pago_x_kilo_operario_ayud_patio * total_kilos_ayud_patio_operario, 2)
                     
                     
-                    print(f"TOTAL DESPELONADO   {total_despelonada}")
                     if not have_skill_despelo_in_program:
                         total_despelonada = 0
                     if not have_skill_pre_limpia_in_program:
@@ -509,7 +508,9 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                     if not have_skill_ayud_patio_in_program:
                         total_ayud_patio = 0
                     
-                    print(f"total_despelo {total_despelonada}")
+                    final_neto = round(total_ayud_patio + total_prelimpia + total_descascarado + total_despelonada, 2)
+                    
+                    
                         
                     if programa.pk not in resultado_seria:
                         resultado_seria[programa.pk] = {
@@ -520,7 +521,7 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                             "despelonado": total_despelonada if pago_x_kilo_operario_despelonado > 0 else "No Tiene este Skill",
                             "descascarado": total_descascarado if pago_x_kilo_operario_descascarado > 0 else "No Tiene este Skill",
                             "ayud_patio": total_ayud_patio if pago_x_kilo_operario_ayud_patio > 0 else "No Tiene este Skill",
-                            "neto": round(total_prelimpia + total_despelonada + total_descascarado + total_ayud_patio, 2)
+                            "neto": final_neto
                         }
 
             return Response({
@@ -585,7 +586,6 @@ class ProduccionViewSet(viewsets.ModelViewSet):
             operarios_despelo = OperariosEnProduccion.objects.filter(produccion=produccion, skill_operario='despelo')
             operarios_descascarado = OperariosEnProduccion.objects.filter(produccion=produccion, skill_operario='op_desca')
             operarios_ayud_patio = OperariosEnProduccion.objects.filter(produccion=produccion, skill_operario='ayud_patio')
-
             for operario_limpia in operarios_limpia:
                 for laborable_date in laborable_dates:  
                        
