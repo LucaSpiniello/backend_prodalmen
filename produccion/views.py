@@ -174,7 +174,7 @@ class ProduccionViewSet(viewsets.ModelViewSet):
         except ValueError as e:
             return Response({'detail': f'Error en la conversión de fechas: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if tipo_informe == '1':
+        if tipo_informe == '1' or tipo_informe == '4':
             # Filtrar Produccion por fecha
             queryset = Produccion.objects.filter(
             Q(fecha_inicio_proceso__gte=desde, fecha_termino_proceso__lte=hasta) |  
@@ -274,10 +274,32 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                     except SkillOperario.DoesNotExist:
                         pago_x_kilo_operario_despelonado = 0
                         
+                    # Intenta obtener el pago por kilo para ayudante patio
+                    try:
+                        pago_x_kilo_operario_ayud_patio = SkillOperario.objects.get(
+                            operario=operario_en_programa.operario, tipo_operario='ayud_patio'
+                        ).pago_x_kilo
+                    except SkillOperario.DoesNotExist:
+                        pago_x_kilo_operario_ayud_patio = 0
+                    
+                    # Intenta obtener el pago por kilo para op descascarado
+                    
+                    try:
+                        pago_x_kilo_operario_descascarado = SkillOperario.objects.get(
+                            operario=operario_en_programa.operario, tipo_operario='op_desca'
+                        ).pago_x_kilo
+                    except SkillOperario.DoesNotExist:
+                        pago_x_kilo_operario_descascarado = 0
+                        
+
+                        
                     operarios_skill_pre_limpia = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='p_limpia')
                 
                     operarios_skill_despelo = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='despelo')
                     
+                    operarios_skill_descasarado = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='op_desca')
+                    
+                    operarios_skill_ayud_patio = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='ayud_patio')
                     
                     have_skill_pre_limpia_in_program = any(
                         operario_en_programa.operario == operario_en_produccion.operario 
@@ -289,14 +311,32 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                         for operario_en_produccion in operarios_skill_despelo
                     )
                     
+                    have_skill_descascarado_in_program = any(
+                        operario_en_programa.operario == operario_en_produccion.operario 
+                        for operario_en_produccion in operarios_skill_descasarado
+                    )
+                    
+                    have_skill_ayud_patio_in_program = any(
+                        operario_en_programa.operario == operario_en_produccion.operario 
+                        for operario_en_produccion in operarios_skill_ayud_patio
+                    )
+
+                    
                     total_prelimpia = round(pago_x_kilo_operario_prelimpia * total_kilos_operario, 2)
                     total_despelonada = round(pago_x_kilo_operario_despelonado * total_kilos_operario, 2)
+                    total_ayud_patio = round(pago_x_kilo_operario_ayud_patio * total_kilos_operario, 2)
+                    total_descascarado = round(pago_x_kilo_operario_descascarado * total_kilos_operario, 2)
                     
                     if not have_skill_despelo_in_program:
                         total_despelonada = 0
                     if not have_skill_pre_limpia_in_program:
                         total_prelimpia = 0
-
+                    if not have_skill_descascarado_in_program:
+                        total_descascarado = 0
+                    if not have_skill_ayud_patio_in_program:
+                        total_ayud_patio = 0
+                    
+                    final_neto = round(pago_x_kilo_operario_prelimpia * total_prelimpia + pago_x_kilo_operario_despelonado * total_despelonada + pago_x_kilo_operario_descascarado * total_descascarado  + pago_x_kilo_operario_ayud_patio * total_ayud_patio, 2)
                     if nombre_operario not in resultado_seria:
                         resultado_seria[nombre_operario] = {
                             "numero_programa": programa.pk,
@@ -304,7 +344,9 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                             "kilos_programa": round(total_kilos_operario, 2),
                             "pre_limpia": round(total_prelimpia,2) if pago_x_kilo_operario_prelimpia > 0 else "No Tiene este Skill",
                             "despelonado": round(total_despelonada,2) if pago_x_kilo_operario_despelonado > 0 else "No Tiene este Skill",
-                            "neto": round(total_prelimpia + total_despelonada, 2)
+                            "ayud_patio": round(total_ayud_patio,2) if pago_x_kilo_operario_ayud_patio > 0 else "No Tiene este Skill",
+                            "descascarado": round(total_descascarado,2) if pago_x_kilo_operario_descascarado > 0 else "No Tiene este Skill",
+                            "neto": final_neto
                         }
                         if resultado_seria[nombre_operario]['neto'] == 0:
                             del resultado_seria[nombre_operario]
@@ -312,7 +354,10 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                         resultado_seria[nombre_operario]['kilos_programa'] += round(total_kilos_operario, 2)
                         resultado_seria[nombre_operario]['pre_limpia'] += round(total_prelimpia,2) if pago_x_kilo_operario_prelimpia > 0 else "No Tiene este Skill"
                         resultado_seria[nombre_operario]['despelonado'] += round(total_despelonada,2) if pago_x_kilo_operario_despelonado > 0 else "No Tiene este Skill"
-                        resultado_seria[nombre_operario]['neto'] += round(total_prelimpia + total_despelonada, 2)
+                        resultado_seria[nombre_operario]['ayud_patio'] += round(total_ayud_patio,2) if pago_x_kilo_operario_ayud_patio > 0 else "No Tiene este Skill"
+                        resultado_seria[nombre_operario]['descascarado'] += round(total_descascarado,2) if pago_x_kilo_operario_descascarado > 0 else "No Tiene este Skill"
+                        resultado_seria[nombre_operario]['neto'] += round(total_prelimpia + total_despelonada + total_descascarado + total_ayud_patio, 2)
+                        
                     
             
             return Response(list(resultado_seria.values()), status=status.HTTP_200_OK)
@@ -378,11 +423,30 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                         total_kilos=models.Sum(models.F('peso') - models.F('tipo_patineta'))
                     )['total_kilos'] or 0
                     
-                    print(f"total kilos despelonado {total_kilos_despelonado_operario} desde {desde} hasta {hasta}")
+                    total_kilos_descascarado_operario = TarjaResultante.objects.filter(
+                        produccion=programa,
+                        esta_eliminado=False,
+                        fecha_creacion__range=(desde, hasta)
+                    ).aggregate(
+                        total_kilos=models.Sum(models.F('peso') - models.F('tipo_patineta'))
+                    )['total_kilos'] or 0
+                    
+                    total_kilos_ayud_patio_operario = LotesPrograma.objects.filter(
+                        produccion=programa,
+                        bin_procesado=True,
+                        fecha_procesado__range=(desde, hasta)
+                    ).aggregate(
+                        total_kilos=models.Sum('bodega_techado_ext__kilos_fruta')
+                    )['total_kilos'] or 0
+                    
                     
                     operarios_skill_pre_limpia = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='p_limpia')
                 
                     operarios_skill_despelo = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='despelo')
+                    
+                    operarios_skill_descascarado = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='op_desca')
+                    
+                    operarios_skill_ayud_patio = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='ayud_patio')
                     
                     have_skill_pre_limpia_in_program = any(
                         operario_select == operario_en_produccion.operario 
@@ -392,7 +456,17 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                     have_skill_despelo_in_program = any(
                         operario_select == operario_en_produccion.operario 
                         for operario_en_produccion in operarios_skill_despelo
-)
+)                   
+                    have_skill_descascarado_in_program = any(
+                        operario_select == operario_en_produccion.operario 
+                        for operario_en_produccion in operarios_skill_descascarado
+                    )
+                    
+                    have_skill_ayud_patio_in_program = any(
+                        operario_select == operario_en_produccion.operario 
+                        for operario_en_produccion in operarios_skill_ayud_patio
+                    )
+                    
                           
                     # Intenta obtener el pago por kilo para pre_limpia
                     try:
@@ -405,14 +479,35 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                         pago_x_kilo_operario_despelonado = SkillOperario.objects.get(operario=operario_front, tipo_operario='despelo').pago_x_kilo
                     except SkillOperario.DoesNotExist:
                         pago_x_kilo_operario_despelonado = 0
+
+                    # Intenta obtener el pago por kilo para descascarado
+                    try:
+                        pago_x_kilo_operario_descascarado = SkillOperario.objects.get(operario=operario_front, tipo_operario='op_desca').pago_x_kilo
+                    except SkillOperario.DoesNotExist:
+                        pago_x_kilo_operario_descascarado = 0
+                        
+                    # Intenta obtener el pago por kilo para ayudante patio
+                    try:
+                        pago_x_kilo_operario_ayud_patio = SkillOperario.objects.get(operario=operario_front, tipo_operario='ayud_patio').pago_x_kilo
+                    except SkillOperario.DoesNotExist:
+                        pago_x_kilo_operario_ayud_patio = 0
+                    
                     print(f"kilos despelonado {total_kilos_despelonado_operario} pagando {pago_x_kilo_operario_despelonado}")
                     total_prelimpia = round(pago_x_kilo_operario_prelimpia * total_kilos_pre_limpia_operario, 2)
                     total_despelonada = round(pago_x_kilo_operario_despelonado * total_kilos_despelonado_operario, 2)
+                    total_descascarado = round(pago_x_kilo_operario_descascarado * total_kilos_descascarado_operario, 2)
+                    total_ayud_patio = round(pago_x_kilo_operario_ayud_patio * total_kilos_ayud_patio_operario, 2)
+                    
+                    
                     print(f"TOTAL DESPELONADO   {total_despelonada}")
                     if not have_skill_despelo_in_program:
                         total_despelonada = 0
                     if not have_skill_pre_limpia_in_program:
                         total_prelimpia = 0
+                    if not have_skill_descascarado_in_program:
+                        total_descascarado = 0
+                    if not have_skill_ayud_patio_in_program:
+                        total_ayud_patio = 0
                     
                     print(f"total_despelo {total_despelonada}")
                         
@@ -423,7 +518,9 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                             "kilos_programa": round(total_kilos_operario, 2),
                             "pre_limpia": total_prelimpia if pago_x_kilo_operario_prelimpia > 0 else "No Tiene este Skill",
                             "despelonado": total_despelonada if pago_x_kilo_operario_despelonado > 0 else "No Tiene este Skill",
-                            "neto": round(total_prelimpia + total_despelonada, 2)
+                            "descascarado": total_descascarado if pago_x_kilo_operario_descascarado > 0 else "No Tiene este Skill",
+                            "ayud_patio": total_ayud_patio if pago_x_kilo_operario_ayud_patio > 0 else "No Tiene este Skill",
+                            "neto": round(total_prelimpia + total_despelonada + total_descascarado + total_ayud_patio, 2)
                         }
 
             return Response({
@@ -486,6 +583,8 @@ class ProduccionViewSet(viewsets.ModelViewSet):
 
             operarios_limpia = OperariosEnProduccion.objects.filter(produccion=produccion, skill_operario='p_limpia')
             operarios_despelo = OperariosEnProduccion.objects.filter(produccion=produccion, skill_operario='despelo')
+            operarios_descascarado = OperariosEnProduccion.objects.filter(produccion=produccion, skill_operario='op_desca')
+            operarios_ayud_patio = OperariosEnProduccion.objects.filter(produccion=produccion, skill_operario='ayud_patio')
 
             for operario_limpia in operarios_limpia:
                 for laborable_date in laborable_dates:  
@@ -553,8 +652,70 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                         defaults={'kilos_dia': kilos_dia_actual}
                     )
                     
+            for operario_ayud_patio in operarios_ayud_patio:
+                for laborable_date in laborable_dates:  
+                       
+                    existing_records = DiaDeOperarioProduccion.objects.filter(
+                        operario=operario_ayud_patio,
+                        dia=laborable_date
+                    )
+            
+                    if existing_records.count() > 1:
+                        existing_records.delete()
+                    
+                    kilos_dia_actual = LotesPrograma.objects.filter(
+                        produccion=produccion,
+                        bin_procesado=True,
+                        fecha_procesado__date=laborable_date
+                    ).aggregate(
+                        total_kilos=models.Sum('bodega_techado_ext__kilos_fruta')
+                    )['total_kilos'] or 0
                     
 
+                                  
+                    DiaDeOperarioProduccion.objects.filter(
+                        operario=operario_ayud_patio,
+                        dia=laborable_date
+                    ).update(kilos_dia=0)
+                    
+                    DiaDeOperarioProduccion.objects.update_or_create(
+                        operario=operario_ayud_patio,
+                        dia=laborable_date,
+                        defaults={'kilos_dia': kilos_dia_actual}                                                                                                        
+                    )    
+
+            for operario_descasc in operarios_descascarado:
+                    
+                for laborable_date in laborable_dates:
+                    
+                    existing_records = DiaDeOperarioProduccion.objects.filter(
+                        operario=operario_descasc,
+                        dia=laborable_date
+                        )
+            
+                    if existing_records.count() > 1:
+                        existing_records.delete()
+                    
+                    kilos_dia_actual = TarjaResultante.objects.filter(
+                        produccion=produccion,
+                        esta_eliminado=False,
+                        fecha_creacion__date=laborable_date
+                    ).aggregate(
+                        total_kilos=models.Sum(models.F('peso') - models.F('tipo_patineta'))
+                    )['total_kilos'] or 0
+                    
+                    
+                    DiaDeOperarioProduccion.objects.filter(
+                        operario=operario_descasc,
+                        dia=laborable_date
+                    ).update(kilos_dia=0)
+                    
+                    DiaDeOperarioProduccion.objects.update_or_create(
+                        operario=operario_descasc,
+                        dia=laborable_date,
+                        defaults={'kilos_dia': kilos_dia_actual}
+                    )
+                    
             return Response({'status': 'Días y kilos asignados a operarios'}, status=status.HTTP_201_CREATED)
         else:
             return Response({'status': 'Fechas de inicio o término no definidas'}, status=status.HTTP_400_BAD_REQUEST)

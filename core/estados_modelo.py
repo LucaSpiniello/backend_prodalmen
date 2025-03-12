@@ -19,6 +19,8 @@ TIPOS_OPERARIO = (
     ('bodega', 'Operario de Bodega'),
     ('pesaje', 'Operario de Pesaje'),  
     ('sub_prod', 'Operario de Sub Producto'),
+    ('ayud_patio', 'Ayudante de Patio'),
+    ('op_desca', 'Operador Descascarado'),
 )   
 
       

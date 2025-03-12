@@ -99,6 +99,7 @@ class OperarioViewSet(viewsets.ModelViewSet):
     def agregar_skill(self, request, pk=None):
         operario = self.get_object()
         skill_data = request.data
+        print(f"SKILL DATA: {skill_data}")
         # Aquí deberías validar los datos de skill_data, por ejemplo, si es un ID válido.
         skill, created = SkillOperario.objects.get_or_create(operario=operario, **skill_data)
         if created:
