@@ -405,7 +405,6 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
                 cc_lotes = CCRecepcionMateriaPrima.objects.filter(recepcionmp__in=[recepcion])
                 saltar_a_siguiente = False
                 for cc_lote in cc_lotes:
-                    print(f"ESTADO APROBACION ES {cc_lote.estado_aprobacion_cc}")
                     if cc_lote.estado_aprobacion_cc != '1':
                         saltar_a_siguiente = True
                         break

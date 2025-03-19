@@ -128,7 +128,7 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                 if primer_lote and primer_lote.guia_patio and primer_lote.guia_patio.lote_recepcionado:
                     productor = primer_lote.guia_patio.lote_recepcionado.guiarecepcion.productor.nombre
                     comercializador = primer_lote.guia_patio.lote_recepcionado.guiarecepcion.comercializador.nombre
-                    print(f"Comercializador: {comercializador} filtro: {filtro_comercializador}")
+
                     if comercializador == filtro_comercializador:
                         # Procesar calibres
                         for calibre_nombre, kilos_calibre in calibres.items():

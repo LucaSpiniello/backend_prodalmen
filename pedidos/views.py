@@ -5,7 +5,7 @@ from django.shortcuts import render, get_object_or_404, get_list_or_404
 from exportacion.models import *
 from mercadointerno.models import *
 from .serializers import *
-
+from collections import defaultdict
 from rest_framework.decorators import action
 from django.contrib.contenttypes.models import *
 from rest_framework.response import Response
@@ -104,21 +104,34 @@ class PedidoViewSet(viewsets.ModelViewSet):
         comercializador = request.query_params.get('comercializador', None)
         tipos_pedido = ['pedidomercadointerno', 'pedidoexportacion', 'guiasalidafruta']
         fruta_pedidos = []
+
+        # Diccionario para agrupar los pedidos por calidad, calibre y variedad
+        grouped_pedidos = defaultdict(float)
+
         for tipo_pedido in tipos_pedido:
-            pedidos  = Pedido.objects.filter(tipo_pedido__model=tipo_pedido)
+            pedidos = Pedido.objects.filter(tipo_pedido__model=tipo_pedido)
             
             for pedido in pedidos:
-                print(pedido.pedido.comercializador, comercializador)
                 if pedido.pedido.comercializador == comercializador:
                     pedido_real = pedido.pedido_real
                     fruta_ficticia = list(pedido_real.fruta_pedido.all())
-                    for fruta_pedido in fruta_ficticia:   
-                        fruta_pedidos.append({
-                            'kilos_solicitados': fruta_pedido.kilos_solicitados,
-                            'calidad': fruta_pedido.get_calidad_display(),
-                            'calibre': fruta_pedido.get_calibre_display(),
-                            'variedad': fruta_pedido.get_variedad_display(),
-                        })  
+                    for fruta_pedido in fruta_ficticia:
+                        key = (
+                            fruta_pedido.get_calidad_display(),
+                            fruta_pedido.get_calibre_display(),
+                            fruta_pedido.get_variedad_display()
+                        )
+                        grouped_pedidos[key] += fruta_pedido.kilos_solicitados
+
+        # Convertir el diccionario agrupado en una lista de diccionarios
+        for key, kilos_solicitados in grouped_pedidos.items():
+            fruta_pedidos.append({
+                'kilos_solicitados': kilos_solicitados,
+                'calidad': key[0],
+                'calibre': key[1],
+                'variedad': key[2],
+            })
+
         return Response(fruta_pedidos)
            
     @action(detail = False, methods = ['DELETE'])
