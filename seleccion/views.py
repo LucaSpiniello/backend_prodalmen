@@ -231,15 +231,15 @@ class SeleccionViewSet(viewsets.ModelViewSet):
             programas_seleccion = Seleccion.objects.none()  
         else:
             programas_seleccion = Seleccion.objects.filter(
-                Q(fecha_inicio_proceso__gte=desde, fecha_termino_proceso__lte=hasta) |  
-                Q(fecha_termino_proceso__isnull=True, fecha_inicio_proceso__lte=hasta)
+                Q(fecha_inicio_proceso__lte=hasta) &  # Programas que comenzaron antes o en la fecha 'hasta'
+                (Q(fecha_termino_proceso__lte=desde) | Q(fecha_termino_proceso__isnull=True))  # Programas que terminaron en o antes de 'desde' o no han terminado
             )
             
         resultados_informe = []
 
         for programa in programas_seleccion:
-            tarjas_seleccionadas = TarjaSeleccionada.objects.filter(seleccion = programa.pk, fecha_creacion__gte = desde, fecha_creacion__lte = hasta)
-            cc_tarja_seleccionada = CCTarjaSeleccionada.objects.filter(tarja_seleccionada__in = tarjas_seleccionadas).first()
+            tarjas_seleccionadas = TarjaSeleccionada.objects.filter(seleccion=programa.pk, fecha_creacion__gte=desde, fecha_creacion__lte=hasta)
+            cc_tarja_seleccionada = CCTarjaSeleccionada.objects.filter(tarja_seleccionada__in=tarjas_seleccionadas).first()
             for tarja in tarjas_seleccionadas:
                 kilostarja = (tarja.peso - tarja.tipo_patineta)
                 producto = "Pepa Seleccionada"
@@ -257,12 +257,12 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                     "kilos": f'{kilostarja}'   
                 }
                 resultados_informe.append(dic)
-                
-        serializer = PDFInformeSeleccionSerializer(data = resultados_informe, many=True)
+                    
+        serializer = PDFInformeSeleccionSerializer(data=resultados_informe, many=True)
         serializer.is_valid(raise_exception=True)
         
-        return Response(serializer.data, status = status.HTTP_200_OK)
-        
+        return Response(serializer.data, status=status.HTTP_200_OK)    
+      
     @action(detail=False, methods=['POST'])
     def pdf_kilos_por_operario(self, request):
         operario = request.data.get('operario')
