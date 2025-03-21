@@ -230,10 +230,7 @@ class SeleccionViewSet(viewsets.ModelViewSet):
         if desde.date() > hoy:
             programas_seleccion = Seleccion.objects.none()  
         else:
-            programas_seleccion = Seleccion.objects.filter(
-                Q(fecha_inicio_proceso__lte=hasta) &  # Programas que comenzaron antes o en la fecha 'hasta'
-                (Q(fecha_termino_proceso__lte=desde) | Q(fecha_termino_proceso__isnull=True))  # Programas que terminaron en o antes de 'desde' o no han terminado
-            )
+            programas_seleccion = Seleccion.objects.all()
             
         resultados_informe = []
 
