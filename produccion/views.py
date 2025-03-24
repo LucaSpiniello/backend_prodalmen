@@ -147,13 +147,15 @@ class ProduccionViewSet(viewsets.ModelViewSet):
     def pdf_salida_produccion(self, request, pk=None):
         produccion = self.get_object()
         serializer = ProduccionDetailSerializer(produccion)
+        
         return Response({
             'produccion': produccion.id,
             'kilos_resultantes': serializer.data['kilos_resultantes_totales'],
             'cantidad_bines_resultantes': serializer.data['cantidad_bines_resultantes'],
             #'productores_duenos_lote': serializer.data['productores_duenos_lotes'],
             'numeros_lote': serializer.data['numeros_lote'],
-            'tarjas_resultantes': serializer.data['tarjas_resultantes']
+            'tarjas_resultantes': serializer.data['tarjas_resultantes'],
+            'comercializador': serializer.data['comercializador'],
         })
       
     @action(detail=False, methods=['POST'])
