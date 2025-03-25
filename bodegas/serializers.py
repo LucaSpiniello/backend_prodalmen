@@ -4,7 +4,7 @@ from controlcalidad.models import *
 from .models import *
 from django.contrib.contenttypes.models import *
 from django.db.models import Max
-
+from produccion.models import *
 
 class CCGuiaInternaSerializer(serializers.ModelSerializer):
   class Meta:
@@ -150,6 +150,7 @@ class BinBodegaSerializer(serializers.ModelSerializer):
     variedad = serializers.SerializerMethodField()
     calibre = serializers.SerializerMethodField()
     calidad = serializers.SerializerMethodField()
+    comercializador = serializers.SerializerMethodField()
         
     
     class Meta:
@@ -205,7 +206,8 @@ class DetalleBinBodegaSerializer(serializers.ModelSerializer):
     tipo_producto = serializers.SerializerMethodField()
     programa_seleccion = serializers.SerializerMethodField() 
     programa_produccion = serializers.SerializerMethodField()
-        
+    comercializador = serializers.SerializerMethodField()
+    
     def get_tipo_producto(self, obj):
         return obj.tipo_producto
     
@@ -227,7 +229,21 @@ class DetalleBinBodegaSerializer(serializers.ModelSerializer):
         
     def get_fumigado(self, obj):
         return 'Si' if obj.binbodega.fumigado else 'No'
-
+    
+    def get_comercializador(self, obj):
+        # Obtener el comercializador a través de BinsPepaCalibrada
+        
+        if obj.binbodega and hasattr(obj.binbodega, 'seleccion'):
+            seleccion = obj.binbodega.seleccion.seleccion
+            if seleccion and hasattr(seleccion, 'produccion'):
+                produccion = seleccion.produccion
+                print(f"Producción: {produccion}")
+                lote_en_produccion = LotesPrograma.objects.filter(produccion=produccion).first()
+                if lote_en_produccion:
+                    envase = EnvasesPatioTechadoExt.objects.get(pk=lote_en_produccion.bodega_techado_ext.pk)
+                    if envase.guia_patio.tipo_recepcion.model == 'recepcionmp':
+                        comercializador = envase.guia_patio.lote_recepcionado.guiarecepcion.comercializador.nombre
+                        return comercializador
         
     def get_calibrado(self, obj):
         return obj.calibrado

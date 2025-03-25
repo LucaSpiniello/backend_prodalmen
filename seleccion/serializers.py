@@ -91,7 +91,7 @@ class SeleccionSerializer(serializers.ModelSerializer):
     condicion_cierre = serializers.SerializerMethodField()
     condicion_termino = serializers.SerializerMethodField()
     pepa_para_seleccion_length = serializers.SerializerMethodField()
-
+    comercializador = serializers.SerializerMethodField()
     
     def get_pepa_para_seleccion_length(self, obj):
         return BinsPepaCalibrada.objects.all().count()
@@ -103,7 +103,7 @@ class SeleccionSerializer(serializers.ModelSerializer):
             "bins_sin_procesar": sum(bin.binbodega.kilos_bin for bin in bins_sin_calibrar) if bins_calibrados else 1,
             "bins_procesados": sum(bin.binbodega.kilos_bin for bin in bins_calibrados)
         }
-        
+              
     def get_kilos_porcentaje(self, obj):
         bins_sin_calibrados = BinsPepaCalibrada.objects.filter(seleccion = obj, bin_procesado = False)
         bins_calibrados = BinsPepaCalibrada.objects.filter(seleccion = obj, bin_procesado=True)
@@ -114,6 +114,17 @@ class SeleccionSerializer(serializers.ModelSerializer):
             "bins_sin_procesar": round((kilos_totales_sin_procesar / (total_kilos or 1)) * 100, 2),
             "bins_procesados": round((kilos_totales_procesados / (total_kilos or 1)) * 100, 2),
         }
+    
+    def get_comercializador(self, obj):
+        produccion = obj.seleccion.produccion
+        lote_en_produccion = LotesPrograma.objects.filter(produccion=produccion).first()
+        if lote_en_produccion:
+            envase = EnvasesPatioTechadoExt.objects.get(pk=lote_en_produccion.bodega_techado_ext.pk)
+            if envase.guia_patio.tipo_recepcion.model == 'recepcionmp':
+                comercializador = envase.guia_patio.lote_recepcionado.guiarecepcion.comercializador.nombre
+                return comercializador
+        else:
+            return "No definido"
     
 
     def get_kilos_totales_ingresados_porcentual(self, obj):
