@@ -150,7 +150,6 @@ class BinBodegaSerializer(serializers.ModelSerializer):
     variedad = serializers.SerializerMethodField()
     calibre = serializers.SerializerMethodField()
     calidad = serializers.SerializerMethodField()
-    comercializador = serializers.SerializerMethodField()
         
     
     class Meta:
@@ -237,7 +236,16 @@ class DetalleBinBodegaSerializer(serializers.ModelSerializer):
             seleccion = obj.binbodega.seleccion.seleccion
             if seleccion and hasattr(seleccion, 'produccion'):
                 produccion = seleccion.produccion
-                print(f"Producción: {produccion}")
+                lote_en_produccion = LotesPrograma.objects.filter(produccion=produccion).first()
+                if lote_en_produccion:
+                    envase = EnvasesPatioTechadoExt.objects.get(pk=lote_en_produccion.bodega_techado_ext.pk)
+                    if envase.guia_patio.tipo_recepcion.model == 'recepcionmp':
+                        comercializador = envase.guia_patio.lote_recepcionado.guiarecepcion.comercializador.nombre
+                        return comercializador
+        elif obj.binbodega and hasattr(obj.binbodega, 'produccion'):
+            produccion = obj.binbodega.produccion.produccion
+            print(f'Producción: {produccion}')
+            if produccion:
                 lote_en_produccion = LotesPrograma.objects.filter(produccion=produccion).first()
                 if lote_en_produccion:
                     envase = EnvasesPatioTechadoExt.objects.get(pk=lote_en_produccion.bodega_techado_ext.pk)
