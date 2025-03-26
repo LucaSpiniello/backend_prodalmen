@@ -116,7 +116,7 @@ class SeleccionSerializer(serializers.ModelSerializer):
         }
     
     def get_comercializador(self, obj):
-        produccion = obj.seleccion.produccion
+        produccion = obj.produccion
         lote_en_produccion = LotesPrograma.objects.filter(produccion=produccion).first()
         if lote_en_produccion:
             envase = EnvasesPatioTechadoExt.objects.get(pk=lote_en_produccion.bodega_techado_ext.pk)
