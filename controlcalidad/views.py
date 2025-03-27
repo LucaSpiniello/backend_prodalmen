@@ -276,7 +276,10 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
             cc_muestra = []
 
         
-        numero_lote = cc_muestra[0].numero_lote
+        numero_lote = None
+        if len(cc_muestra) > 0:
+            numero_lote = cc_muestra[0].numero_lote
+            
         muestra = cc_muestras_lotes(cc_muestra)
         cc_pepa = cc_pepa_lote(cc_muestra)
         cc_pepa_calibre = cc_pepa_calibres_lote(cc_muestra)
@@ -307,7 +310,10 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         cc_promedio_porcentaje_muestra = PromedioMuestra(promedio_cc_muestras).data
         cc_promedio_porcentaje_cc_pepa = PromedioPepaMuestraSerializer(promedio_por_cc_pepa).data
         cc_promedio_porcentaje_cc_pepa_calibrada = PromedioCalibresSerializer(promedio_cc_pepa_calibrada).data
-        
+        # check if cc_muestra_serializado is a amepty array
+        if len(cc_muestra_serializado) == 0 or len(cc_pepa_serializado) == 0 or len(cc_pepa_calibre_serializado) == 0 or len(cc_descuentos_serializado) == 0 or len(cc_aportes_pex_serializado) == 0 or len(cc_porcentaje_liquidar_serializado) == 0 or len(cc_kilos_desc_merma_serializado) == 0 or len(cc_merma_por_serializador) == 0:
+            return Response({'error': 'No se encontraron datos para los lotes seleccionados'}, status=status.HTTP_404_NOT_FOUND)
+
         return Response({   
             'cc_muestra': cc_muestra_serializado,
             'cc_pepa': cc_pepa_serializado,

@@ -43,7 +43,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     "comercializador": pedido.pedido.comercializador,
                         }
                 resultados.append(dic)
-            elif pedido.tipo_pedido.model == 'pedidoexportacion':
+            elif pedido.tipo_pedido.model == 'pedidoexportacion' and pedido.pedido.comercializador == comercializador:
                 sucursal_set = cliente.sucursalclienteexportacion_set
                 sucursal_matriz = sucursal_set.first().nombre if sucursal_set.exists() else 'No tiene sucursal'
                 dic = {
@@ -59,7 +59,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     "comercializador": pedido.pedido.comercializador,
                         }
                 resultados.append(dic)
-            elif pedido.tipo_pedido.model == 'guiasalidafruta':
+            elif pedido.tipo_pedido.model == 'guiasalidafruta' and pedido.pedido.comercializador == comercializador:
                 # Inicializa cliente_guia con un valor por defecto
                 cliente_guia = "Información no disponible"
 
