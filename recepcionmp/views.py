@@ -48,6 +48,43 @@ class GuiaRecepcionMPViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(guias, many=True)
         return Response(serializer.data)
     
+    @action(detail=False, methods=['GET'], url_path='get_all_kilos_lotes_recepcionados')
+    def get_all_kilos_lotes_recepcionados(self, request, recepcionmp_pk=None):
+        
+        user = self.request.user
+        anio = PersonalizacionPerfil.objects.get(usuario= user).anio
+        queryset = RecepcionMp.objects.filter(fecha_creacion__year = anio)
+        # only include the ones that are not in estado_recepcion 6,7
+        queryset = queryset.exclude(estado_recepcion__in=['1', '2', '3', '4', '5'])
+        total_kilos_prodalmen = 0
+        total_kilos_pacific = 0
+        # filer the query set by comercializador ( Prodalmen and Pacific Nut)
+        queryset_prodalmen = queryset.filter(guiarecepcion__comercializador__nombre='Prodalmen')
+        queryset_pacificnut = queryset.filter(guiarecepcion__comercializador__nombre='Pacific Nut')
+        
+        # filter the query set by guiarecepcion__estado_recepcion 6,7
+        queryset_prodalmen = queryset_prodalmen.exclude(estado_recepcion__in=['1', '2', '3', '4', '5'])
+        queryset_pacificnut = queryset_pacificnut.exclude(estado_recepcion__in=['1', '2', '3', '4', '5'])
+        
+        for lote in queryset_prodalmen:
+            kilos_brutos = lote.kilos_brutos_1 + lote.kilos_brutos_2
+            kilos_tara = lote.kilos_tara_1 + lote.kilos_tara_2
+            kilos_neto = kilos_brutos - kilos_tara
+            total_kilos_prodalmen += kilos_neto
+        for lote in queryset_pacificnut:
+            kilos_brutos = lote.kilos_brutos_1 + lote.kilos_brutos_2
+            kilos_tara = lote.kilos_tara_1 + lote.kilos_tara_2
+            kilos_neto = kilos_brutos - kilos_tara
+            total_kilos_pacific += kilos_neto
+        # return the total kilos for each comercializador
+        data = {
+            'total_kilos_prodalmen': total_kilos_prodalmen,
+            'total_kilos_pacificnut': total_kilos_pacific
+        }
+        return Response(data, status=status.HTTP_200_OK)
+            
+        
+    
 class RecepcionMpViewSet(viewsets.ModelViewSet):
     queryset = RecepcionMp.objects.all()
     permission_classes = [IsAuthenticated,]
@@ -122,10 +159,6 @@ class RecepcionMpViewSet(viewsets.ModelViewSet):
         updated_rechazos = LoteRecepcionMpRechazadoPorCC.objects.filter(recepcionmp__in=queryset.values_list('pk', flat=True))
         serializador_rechazo_actualizado = LoteRechazadoSerializer(updated_rechazos, many=True)
         return Response(serializador_rechazo_actualizado.data, status=status.HTTP_200_OK)
-
-
-
-    
     
 class EnvasesMpViewSet(viewsets.ModelViewSet):
     queryset = EnvasesMp.objects.all()

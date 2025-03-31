@@ -245,8 +245,14 @@ def actualizar_info_validada_cdc_tarja_seleccionada_en_bodega(sender, instance, 
             datos_tarja = tarja.first()
             kilosnetos = datos_tarja.seleccion.peso - datos_tarja.seleccion.tipo_patineta
             tipo_resultante = TIPO_RESULTANTE_SELECCION[int(resultante)-1][1]
-            
-            etiqueta_seleccion(variedad=instance.get_variedad_display(), codigo_tarja=datos_tarja.seleccion.codigo_tarja, pk=datos_tarja.seleccion.seleccion.pk, kilos_fruta=kilosnetos, calibre=instance.get_calibre_display(),calidad=instance.get_calidad_fruta_display(), fecha=str(datos_tarja.fecha_creacion), fecha_programa=str(datos_tarja.seleccion.seleccion.fecha_inicio_proceso), tipo_fruta=tipo_resultante)
+            calidad = instance.get_calidad_fruta_display()
+            if instance.picada < 25 and instance.variedad == 'NP':
+                calidad = 'Extra N°1'
+            elif instance.picada >= 25 and instance.variedad == 'NP':
+                calidad = 'Supreme'
+                
+            print(f"IMPRIMIENDO TARJA {datos_tarja.seleccion.codigo_tarja} calidad es {calidad} estado es {instance.estado_cc}")
+            etiqueta_seleccion(variedad=instance.get_variedad_display(), codigo_tarja=datos_tarja.seleccion.codigo_tarja, pk=datos_tarja.seleccion.seleccion.pk, kilos_fruta=kilosnetos, calibre=calidad,calidad=instance.get_calidad_fruta_display(), fecha=str(datos_tarja.fecha_creacion), fecha_programa=str(datos_tarja.seleccion.seleccion.fecha_inicio_proceso), tipo_fruta=tipo_resultante)
         elif resultante == '1':
             bodega =  BodegaG3.objects.filter(seleccion=instance.tarja_seleccionada.pk).first()
             tarja = BodegaG3.objects.filter(seleccion=instance.tarja_seleccionada.pk)

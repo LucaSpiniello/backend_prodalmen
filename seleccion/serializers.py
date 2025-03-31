@@ -217,6 +217,7 @@ class DetalleTarjaSeleccionadaSerializer(serializers.ModelSerializer):
         try:
             calibracion = CCTarjaSeleccionada.objects.get(tarja_seleccionada=obj)
             if calibracion.tarja_seleccionada.tipo_resultante == '2':
+                print(f" {calibracion.calidad_fruta   }, {calibracion.picada}, {calibracion.variedad} tarja {calibracion.tarja_seleccionada.codigo_tarja}")
                 if calibracion.picada is not None:
                     if calibracion.picada < 25 and calibracion.variedad == 'NP':
                         nueva_calidad = '0'  # Código de 'Extra N°1'
