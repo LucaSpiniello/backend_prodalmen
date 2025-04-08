@@ -66,7 +66,7 @@ class ProgramaPHViewSet(viewsets.ModelViewSet):
         for bin in bin_ingresados:
             kilos_totales += bin.bin_bodega.binbodega.kilos_fruta
             cc_tarja = CCTarjaSeleccionada.objects.get(tarja_seleccionada = bin.bin_bodega.binbodega.seleccion)
-            programa = f'Selección N° {bin.programa.pk}'
+            programa = f'{bin.bin_bodega.binbodega.seleccion.seleccion}'
             dic = {
                 "bin": bin.bin_bodega.binbodega.seleccion.codigo_tarja,
                 "programa": programa,
@@ -75,7 +75,6 @@ class ProgramaPHViewSet(viewsets.ModelViewSet):
                 "procesado": bin.procesado
             }
             resultado.append(dic)
-        print(kilos_totales)
         
         serializer = PDFDocumentoEntradaProgramaPHSerializer(data = resultado, many = True)
         serializer.is_valid(raise_exception=True)
@@ -579,7 +578,6 @@ class ProcesoPHViewSet(viewsets.ModelViewSet):
         kilos_totales_procesados = bins_resultantes.filter(esta_eliminado=False).aggregate(
             total_kilos=Sum(F('peso') - F('tipo_patineta'))
         )
-        print(kilos_totales_procesados)
         
         resultado = []
         
