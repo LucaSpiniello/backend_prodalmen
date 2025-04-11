@@ -104,7 +104,6 @@ class CCRecepcionMateriaPrimaVBViewSet(viewsets.ModelViewSet):
         cc_merma_por = merma_porcentual(cc_aporte_pex)
         cc_calculo_final = calculo_final(muestra, cc_merma_por, cc_descuentos, cc_kilos_desc_merma)
         
-        
         promedio_cc_muestras = promedio_porcentaje_muestras(muestra)
         promedio_por_cc_pepa = promedio_porcentaje_cc_pepa(cc_pepa)
         promedio_cc_pepa_calibrada = promedio_porcentaje_calibres(cc_pepa_calibre)
@@ -294,6 +293,7 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         promedio_cc_muestras = promedio_porcentaje_muestras(muestra)
         promedio_por_cc_pepa = promedio_porcentaje_cc_pepa(cc_pepa)
         promedio_cc_pepa_calibrada = promedio_porcentaje_calibres(cc_pepa_calibre)
+
         
         
         cc_muestra_serializado = MuestraSerializer(muestra, many=True).data
@@ -408,29 +408,22 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         
         for recepcion in recepciones:
             if comercializador in recepcion.guiarecepcion.comercializador.nombre:
-                cc_lotes = CCRecepcionMateriaPrima.objects.filter(recepcionmp__in=[recepcion])
-                saltar_a_siguiente = False
-                for cc_lote in cc_lotes:
-                    if cc_lote.estado_aprobacion_cc != '1':
-                        saltar_a_siguiente = True
-                        break
-                if saltar_a_siguiente:
-                    continue
+                cc_lotes = CCRecepcionMateriaPrima.objects.filter(recepcionmp__in=[recepcion], estado_aprobacion_cc='1')
                 id_guia = recepcion.id
                 muestra = cc_muestras_lotes([recepcion])
                 cc_pepa = cc_pepa_lote([recepcion])
+                cc_pepa_calibre = cc_pepa_calibres_lote([recepcion])
                 cc_descuentos = descuentos_cat2_desechos(cc_pepa, muestra)
                 cc_aporte_pex = aporte_pex(cc_descuentos, muestra)
                 cc_porcentaje_liquidar = porcentaje_a_liquidar(cc_aporte_pex)
                 cc_kilos_desc_merma = kilos_descontados_merma(cc_porcentaje_liquidar, muestra)
-                cc_pepa_calibre_por_lote = cc_pepa_calibres_lote([recepcion])
                 cc_merma_por = merma_porcentual(cc_aporte_pex)
                 cc_calculo_final = calculo_final(muestra, cc_merma_por, cc_descuentos, cc_kilos_desc_merma)
                 exportable = cc_calculo_final['final_exp']
                 variedad = recepcion.envasesguiarecepcionmp_set.all().first().get_variedad_display()
                 calibres = []
-                calibres.append(promedio_porcentaje_calibres(cc_pepa_calibre_por_lote))
-                calibres = cc_pepa_calibre_por_lote
+                calibres.append(promedio_porcentaje_calibres(cc_pepa_calibre))
+                calibres = cc_pepa_calibre
                 for calibre in calibres:
                     for calibre_nombre, porcentaje in calibre.items():
                         if calibre_nombre != "cc_lote" and porcentaje > 0:
@@ -445,8 +438,8 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
 
                             # Calcular los kilos exportables para este calibre
                             kilos_calibre = (porcentaje / 100) * exportable
-                            kilos_calibre_redondeado = round(kilos_calibre, 2)  # Redondear al 2do decimal
-
+                            kilos_calibre_redondeado = round(kilos_calibre, 3)  # Redondear al 2do decimal
+ 
                             # Acumular kilos si ya existe un elemento con el mismo calibre y variedad
                             clave = (calibre_formateado, variedad)
                             if clave in proyeccion_por_calibre:

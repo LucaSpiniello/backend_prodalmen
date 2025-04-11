@@ -152,17 +152,17 @@ def cc_pepa_calibres_lote(lista_lotes):
             
             dic = {
                 'cc_lote': x.pk,
-                'precalibre': round(precalibre, 2),
-                'calibre_18_20': round(calibre_18_20, 2),
-                'calibre_20_22': round(calibre_20_22, 2),
-                'calibre_23_25': round(calibre_23_25, 2),
-                'calibre_25_27': round(calibre_25_27, 2),
-                'calibre_27_30': round(calibre_27_30, 2),
-                'calibre_30_32': round(calibre_30_32, 2),
-                'calibre_32_34': round(calibre_32_34, 2),
-                'calibre_34_36': round(calibre_34_36, 2),
-                'calibre_36_40': round(calibre_36_40, 2),
-                'calibre_40_mas': round(calibre_40_mas, 2)
+                'precalibre': round(precalibre, 3),
+                'calibre_18_20': round(calibre_18_20, 3),
+                'calibre_20_22': round(calibre_20_22, 3),
+                'calibre_23_25': round(calibre_23_25, 3),
+                'calibre_25_27': round(calibre_25_27, 3),
+                'calibre_27_30': round(calibre_27_30, 3),
+                'calibre_30_32': round(calibre_30_32, 3),
+                'calibre_32_34': round(calibre_32_34, 3),
+                'calibre_34_36': round(calibre_34_36, 3),
+                'calibre_36_40': round(calibre_36_40, 3),
+                'calibre_40_mas': round(calibre_40_mas, 3)
             }
         else:
             dic = {
