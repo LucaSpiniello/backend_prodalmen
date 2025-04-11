@@ -274,12 +274,7 @@ class SeleccionViewSet(viewsets.ModelViewSet):
         if desde.date() > hoy:
             programas_seleccion = Seleccion.objects.none()  
         else:
-            programas_seleccion = Seleccion.objects.filter(
-                (Q(fecha_inicio_proceso__gte=desde, fecha_termino_proceso__lte=hasta) |  
-                Q(fecha_termino_proceso__isnull=True, fecha_inicio_proceso__lte=hasta)
-                ),
-                operarios__in = [operario]
-            )
+            programas_seleccion = Seleccion.objects.all()
         
         operario = Operario.objects.get(pk = operario)     
         for programa in programas_seleccion:
@@ -453,7 +448,8 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                 "pepa": round(pepa_pct, 1),
                 "kilos": round(bins.binbodega.kilos_bin, 1),   
                 "colectado": f'{True if cc_bin.estado_cc == "3" else False}',
-                'programa_produccion': programa_produccion
+                'programa_produccion': programa_produccion,
+                "fecha_inicio": seleccion.fecha_inicio_proceso,
             }
             
             resultados_informe.append(dic)
@@ -469,12 +465,16 @@ class SeleccionViewSet(viewsets.ModelViewSet):
         resultados_subproductos = []
         bins_en_seleccion = TarjaSeleccionada.objects.filter(seleccion = pk)
         subProductos = SubProductoOperario.objects.filter(seleccion = pk)
+        print("Programassss", Seleccion.objects.filter(pk=pk))
+        
+        programa_seleccion = Seleccion.objects.filter(pk=pk).first()
+        termino_programa = str(programa_seleccion.fecha_termino_proceso) if programa_seleccion.fecha_termino_proceso else "No terminado"
         
         for producto in subProductos:
             dic = {
                 "operario": f'{producto.operario.nombre} {producto.operario.apellido}',
                 "tipo_producto": f'{producto.get_tipo_subproducto_display()}',
-                "peso": producto.peso
+                "peso": producto.peso,
             }
             
             resultados_subproductos.append(dic)
@@ -530,7 +530,8 @@ class SeleccionViewSet(viewsets.ModelViewSet):
         
         return Response({
             "bines": serializer.data,
-            "subproductos": resultados_subproductos
+            "subproductos": resultados_subproductos,
+            "fecha_final": termino_programa
             }, status = status.HTTP_200_OK)   
 
     def get_laborable_dates(self, start_date, end_date):

@@ -530,6 +530,8 @@ class PDFDetalleEntradaSeleccionSerializer(serializers.Serializer):
     kilos = serializers.FloatField()
     colectado = serializers.BooleanField()
     programa_produccion = serializers.CharField()
+    fecha_inicio = serializers.DateField()
+    
     
     
 class PDFDetalleSalidaSeleccionSerializer(serializers.Serializer):
