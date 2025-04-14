@@ -435,11 +435,14 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
                             else:
                                 # Dejar igual para "precalibre" o "sin calibre"
                                 calibre_formateado = calibre_nombre
-
+                            # redondear el porcentaje al 2do decimal
+                            porcentaje = round(porcentaje, 3)
                             # Calcular los kilos exportables para este calibre
                             kilos_calibre = (porcentaje / 100) * exportable
-                            kilos_calibre_redondeado = round(kilos_calibre, 3)  # Redondear al 2do decimal
- 
+                            kilos_calibre_redondeado = round(kilos_calibre, 2)  # Redondear al 2do decimal
+                            if calibre_formateado == "18/20":
+                                print("PORCENTAJE ES", porcentaje)
+                                print("exportable", exportable)
                             # Acumular kilos si ya existe un elemento con el mismo calibre y variedad
                             clave = (calibre_formateado, variedad)
                             if clave in proyeccion_por_calibre:
