@@ -88,7 +88,6 @@ class CCRecepcionMateriaPrimaVBViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['POST'], url_path='rendimiento_lotes/(?P<pks_lotes>[^/.]+)')
     def rendimiento_lotes(self, request, pks_lotes=None):
         variedad = request.query_params.get('variedad')
-        
         #print(variedad)
         
         lotes_pks = pks_lotes.split(',')
@@ -403,13 +402,22 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['GET'])
     def get_all_info_proyecccion(self, request):
         comercializador = request.query_params.get('comercializador', None)
+        user = self.request.user
+        anio = PersonalizacionPerfil.objects.get(usuario= user).anio
         recepciones = RecepcionMp.objects.all()
+        if anio != 'Todo':
+            recepciones = recepciones.filter(fecha_creacion__year = anio)
+        
+        
         proyeccion_por_calibre = {}
         
+        
         for recepcion in recepciones:
-            if comercializador in recepcion.guiarecepcion.comercializador.nombre:
-                cc_lotes = CCRecepcionMateriaPrima.objects.filter(recepcionmp__in=[recepcion], estado_aprobacion_cc='1')
-                id_guia = recepcion.id
+            have_visto_bueno = CCRecepcionMateriaPrima.objects.filter(
+                recepcionmp=recepcion,
+                estado_aprobacion_cc='1'
+            ).exists()
+            if comercializador in recepcion.guiarecepcion.comercializador.nombre and have_visto_bueno:
                 muestra = cc_muestras_lotes([recepcion])
                 cc_pepa = cc_pepa_lote([recepcion])
                 cc_pepa_calibre = cc_pepa_calibres_lote([recepcion])

@@ -112,7 +112,7 @@ class SeleccionViewSet(viewsets.ModelViewSet):
         selecciones = Seleccion.objects.filter(estado_programa='4')
     
         resultado_final = {}  # Diccionario para acumular los resultados
-
+        print(f'selecciones: {selecciones}')
         for seleccion in selecciones:
             produccion = seleccion.produccion
             bins_procesados = BinsPepaCalibrada.objects.filter(seleccion=seleccion)
@@ -150,7 +150,9 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                                                 "calibre": calibre_nombre,
                                                 "calidad": calidad_nombre
                                             }
-
+        
+        # if calibre is PreCalibre change to precalibre
+        
         # Convertir el diccionario a una lista
         resultado_final_lista = list(resultado_final.values())
         
