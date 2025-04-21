@@ -238,7 +238,7 @@ class SeleccionViewSet(viewsets.ModelViewSet):
 
         for programa in programas_seleccion:
             tarjas_seleccionadas = TarjaSeleccionada.objects.filter(seleccion=programa.pk, fecha_creacion__gte=desde, fecha_creacion__lte=hasta)
-            cc_tarja_seleccionada = CCTarjaSeleccionada.objects.filter(tarja_seleccionada__in=tarjas_seleccionadas).first()
+            # cc_tarja_seleccionada = CCTarjaSeleccionada.objects.filter(tarja_seleccionada__in=tarjas_seleccionadas).first()
             for tarja in tarjas_seleccionadas:
                 kilostarja = (tarja.peso - tarja.tipo_patineta)
                 producto = "Pepa Seleccionada"
@@ -246,13 +246,14 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                     producto = "Descarte Sea"
                 elif tarja.tipo_resultante == "3":
                     producto = "Whole & Broken para PH"
+                cc_tarja = CCTarjaSeleccionada.objects.filter(tarja_seleccionada=tarja).first()
                 dic = {
                     "tarja": tarja.codigo_tarja,
                     "programa": f"Selección N° {programa.pk}",
                     "producto": producto,
-                    "variedad": f'{cc_tarja_seleccionada.get_variedad_display()}', # type: ignore
-                    "calibre": f'{cc_tarja_seleccionada.get_calibre_display()}', # type: ignore
-                    "calidad": f'{cc_tarja_seleccionada.get_calidad_fruta_display()}',
+                    "variedad": f'{cc_tarja.get_variedad_display()}', # type: ignore
+                    "calibre": f'{cc_tarja.get_calibre_display()}', # type: ignore
+                    "calidad": f'{cc_tarja.get_calidad_fruta_display()}',
                     "kilos": f'{kilostarja}'   
                 }
                 resultados_informe.append(dic)
