@@ -51,7 +51,7 @@ def retorna_estado_bin_bodega_cuando_se_saca_de_la_fruta_programa(sender, instan
         instance.binbodega.save()
     
 @receiver(post_save, sender=BinsPepaCalibrada)
-def cambia_estado_bin_bodega_cuando_se_procesa_fruta_a_seleccion(sender, instance, created, **kwargs):
+def cambia__cuando_se_procesa_fruta_a_seleccion(sender, instance, created, **kwargs):
     if instance.bin_procesado:
         ## ('7', 'Procesado En Selección'), ##
         instance.binbodega.estado_binbodega = '7'
