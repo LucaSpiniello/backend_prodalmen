@@ -319,7 +319,7 @@ class PalletProductoTerminadoBodegaSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     codigo_pallet = serializers.CharField()
     calidad = serializers.CharField()
-    variedad = serializers.CharField()
+    variedad = serializers.CharField() 
     calibre = serializers.CharField()
     cantidad_cajas = serializers.IntegerField()
     peso_pallet = serializers.FloatField()

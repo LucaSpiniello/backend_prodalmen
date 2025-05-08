@@ -158,13 +158,16 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
                     
             if total_peso == 0:
                 continue
-                  
+                
+            variedad = pallet.embalaje.get_variedad_display()if pallet.embalaje.get_variedad_display() else 'Indefinido'
+            calibre = pallet.embalaje.get_calibre_display() if pallet.embalaje.get_calibre_display() else 'Indefinido'
+            calidad = pallet.embalaje.get_calidad_display() if pallet.embalaje.get_calidad_display() else 'Indefinido'
             dic = {
                 "id": pallet.id,
                 "codigo_pallet": pallet.codigo_pallet,
-                "calidad": pallet.embalaje.get_calidad_display(),
-                "variedad": pallet.embalaje.get_variedad_display(),
-                "calibre": pallet.embalaje.get_calibre_display(),
+                "variedad": variedad,
+                "calibre": calibre,
+                "calidad": calidad,
                 "cantidad_cajas": cantidad_cajas,
                 "peso_pallet": round(total_peso, 2)
             }
