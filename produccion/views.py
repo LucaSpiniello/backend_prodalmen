@@ -178,10 +178,7 @@ class ProduccionViewSet(viewsets.ModelViewSet):
 
         if tipo_informe == '1' or tipo_informe == '4':
             # Filtrar Produccion por fecha
-            queryset = Produccion.objects.filter(
-            Q(fecha_inicio_proceso__gte=desde, fecha_termino_proceso__lte=hasta) |  
-            Q(fecha_termino_proceso__isnull=True, fecha_inicio_proceso__lte=hasta)                                 
-        )
+            queryset = Produccion.objects.all()
             resultados = {}
             kilos_totales_procesados = LotesPrograma.objects.filter(
                 produccion__in=queryset,
