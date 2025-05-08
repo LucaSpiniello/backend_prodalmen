@@ -180,42 +180,66 @@ class ProduccionViewSet(viewsets.ModelViewSet):
             # Filtrar Produccion por fecha
             queryset = Produccion.objects.all()
             resultados = {}
-            kilos_totales_procesados = LotesPrograma.objects.filter(
-                produccion__in=queryset,
-                bin_procesado=True,
-                fecha_procesado__range=(desde, hasta)
-            ).aggregate(total_kilos_procesados=Sum('bodega_techado_ext__kilos_fruta'))['total_kilos_procesados']
+            kilos_fruta_totales = 0
+            for programa in queryset:
+                numero_programa = programa.pk
+                kilos_fruta = LotesPrograma.objects.filter(
+                    produccion=programa,
+                    bin_procesado=True,
+                    esta_eliminado=False,
+                    fecha_procesado__range=(desde, hasta)
+                ).aggregate(total_kilos_fruta=Sum('bodega_techado_ext__kilos_fruta'))['total_kilos_fruta'] or 0
+                lotes_programa = LotesPrograma.objects.filter(
+                    produccion=programa,
+                    bin_procesado=True,
+                    esta_eliminado=False,
+                    fecha_procesado__range=(desde, hasta)
+                )
+                if kilos_fruta > 0:
+                    resultados[numero_programa] = {
+                        'numero_programa': numero_programa,
+                        'kilos_fruta': round(kilos_fruta, 2),
+                    }
+                
+                kilos_fruta_totales += kilos_fruta
+            # kilos_totales_procesados = LotesPrograma.objects.filter(
+            #     produccion__in=queryset,
+            #     bin_procesado=True,
+            #     esta_eliminado=False,
+            #     fecha_procesado__range=(desde, hasta)
+            # ).aggregate(total_kilos_procesados=Sum('bodega_techado_ext__kilos_fruta'))['total_kilos_procesados'] or 0
 
-            kilos_totales_procesados = round(kilos_totales_procesados or 0, 2)
+            # kilos_totales_procesados = round(kilos_totales_procesados or 0, 2)
+            
+            
+            # for lote in LotesPrograma.objects.filter(fecha_procesado__range=(desde, hasta)):
+            #     kilos_fruta = 0
+            #     envase = EnvasesPatioTechadoExt.objects.get(pk=lote.bodega_techado_ext.pk)
+            #     cantidad_envases = PatioTechadoExterior.objects.get(pk=envase.guia_patio.pk).envasespatiotechadoext_set.all().count()
+            #     suma_kilos_fruta = lote.bodega_techado_ext.kilos_fruta
+            #     if suma_kilos_fruta is not None:
+            #         kilos_fruta += suma_kilos_fruta
 
-            for lote in LotesPrograma.objects.filter(fecha_procesado__range=(desde, hasta)):
-                kilos_fruta = 0
-                envase = EnvasesPatioTechadoExt.objects.get(pk=lote.bodega_techado_ext.pk)
-                cantidad_envases = PatioTechadoExterior.objects.get(pk=envase.guia_patio.pk).envasespatiotechadoext_set.all().count()
-                suma_kilos_fruta = lote.bodega_techado_ext.kilos_fruta
-                if suma_kilos_fruta is not None:
-                    kilos_fruta += suma_kilos_fruta
+            #     if envase.guia_patio.tipo_recepcion.model == 'recepcionmp':
+            #         numero_lote = envase.guia_patio.lote_recepcionado.numero_lote
+            #         productor = envase.guia_patio.lote_recepcionado.guiarecepcion.productor.nombre
+            #         comercializador = envase.guia_patio.lote_recepcionado.guiarecepcion.comercializador.nombre
+            #         variedad = envase.guia_patio.lote_recepcionado.envasesguiarecepcionmp_set.first().get_variedad_display()
 
-                if envase.guia_patio.tipo_recepcion.model == 'recepcionmp':
-                    numero_lote = envase.guia_patio.lote_recepcionado.numero_lote
-                    productor = envase.guia_patio.lote_recepcionado.guiarecepcion.productor.nombre
-                    comercializador = envase.guia_patio.lote_recepcionado.guiarecepcion.comercializador.nombre
-                    variedad = envase.guia_patio.lote_recepcionado.envasesguiarecepcionmp_set.first().get_variedad_display()
-
-                    if numero_lote not in resultados:
-                        resultados[numero_lote] = {
-                            'numero_lote': numero_lote,
-                            'total_envases': cantidad_envases,
-                            'productor': productor,
-                            'variedad': variedad,
-                            'numero_programa': lote.produccion.pk,
-                            'kilos_fruta': round(kilos_fruta,2)
-                        }
-                    else:
-                        resultados[numero_lote]['kilos_fruta'] += round(kilos_fruta, 2)
-
+            #         if numero_lote not in resultados:
+            #             resultados[numero_lote] = {
+            #                 'numero_lote': numero_lote,
+            #                 'total_envases': cantidad_envases,
+            #                 'productor': productor,
+            #                 'variedad': variedad,
+            #                 'numero_programa': lote.produccion.pk,
+            #                 'kilos_fruta': round(kilos_fruta,2)
+            #             }
+            #         else:
+            #             resultados[numero_lote]['kilos_fruta'] += round(kilos_fruta, 2)
+            print(f"Resultados: {resultados}")
             return Response({
-                "kilos_totales_procesados": kilos_totales_procesados,
+                "kilos_totales_procesados": kilos_fruta_totales,
                 "detalle_programas": list(resultados.values())
             })
 
