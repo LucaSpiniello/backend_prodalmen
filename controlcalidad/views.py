@@ -227,7 +227,7 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
             host='smtp.gmail.com',  # Servidor SMTP
             port=587,               # Puerto SMTP
             username='prodalmen.no.reply@gmail.com',  # Tu dirección de correo
-            password='lhnniwbdjqfuivbf',        # Tu contraseña de correo
+            password = 'fbbwadoabotprjof',
             use_tls=True,           # Usar TLS
         )
 
