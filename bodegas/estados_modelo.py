@@ -173,6 +173,13 @@ CALLE_BODEGA_1 = (
     ('3', 'Calle 3'),
     ('4', 'Calle 4'),
     ('5', 'Calle 5'),
+    ('6', 'Calle 6'),
+    ('7', 'Calle 7'),
+    ('8', 'Calle 8'),
+    ('9', 'Calle 9'),
+    ('10', 'Calle 10'),
+    ('11', 'Calle 11'),
+    ('12', 'Calle 12'),
 )
 
 CALLE_BODEGA_2 = (
