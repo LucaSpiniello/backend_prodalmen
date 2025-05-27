@@ -17,6 +17,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
 from django.core.mail import EmailMessage, get_connection
 from django.db.models import Sum, Avg, F
+from django.conf import settings
 
 class CCRecepcionMateriaPrimaVBViewSet(viewsets.ModelViewSet):
     search_fields = ['recepcionmp__id']
@@ -216,7 +217,8 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['POST'], url_path='send_mailer')
     def send_mailer(self, request, pk=None):
         pdf = request.FILES.get('pdf')
-        email_to = request.data.get('email_to')
+        # email_to = request.data.get('email_to')
+        email_to = 'lucafigarispiniello@gmail.com'
         subject = request.data.get('subject')
         id = request.data.get('id')
         if not pdf or not email_to or not subject:
@@ -226,8 +228,8 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
             backend='django.core.mail.backends.smtp.EmailBackend',
             host='smtp.gmail.com',  # Servidor SMTP
             port=587,               # Puerto SMTP
-            username='prodalmen.no.reply@gmail.com',  # Tu dirección de correo
-            password = 'fbbwadoabotprjof',
+            username='prodalmen.no.responder@gmail.com',  # Tu dirección de correo
+            password = settings.MAILER_PASSWORD,
             use_tls=True,           # Usar TLS
         )
 
