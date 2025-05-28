@@ -24,7 +24,7 @@ class InventarioBodegaViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def crear_inventario(self, request):
         tipo_inventario = request.data.get('tipo_inventario')
-
+        print("Tipo de Inventario:", tipo_inventario)
         if not tipo_inventario:
             return Response({"error": "Tipo Inventario es Requerido"}, status=status.HTTP_400_BAD_REQUEST)
 

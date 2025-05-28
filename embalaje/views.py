@@ -120,7 +120,6 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
             bin_id = bin.get('id')
             bin_bodega = bin.get('bin_bodega')
             if bin_id is not None:
-                print("ACTUALIZANDO ESTADO BIN BODEGA", bin_id, bin_bodega)
                 FrutaBodega.objects.filter(pk=bin_id).update(procesado=True)
                 # change to procesado the binbodega
                 BinBodega.objects.filter(pk=bin_bodega).update(procesado=True)

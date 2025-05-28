@@ -16,7 +16,7 @@ def cambiar_estado_a_binbodega(sender, created, instance, **kwargs):
   if created:
     BinBodega.objects.filter(pk = instance.bin_bodega.pk).update(estado_binbodega = '8')
   elif instance.procesado != False:
-    BinBodega.objects.filter(pk = instance.bin_bodega.pk).update(estado_binbodega = '9')
+    BinBodega.objects.filter(pk = instance.bin_bodega.pk).update(estado_binbodega = '9', procesado = True)
     
 @receiver(pre_delete, sender = FrutaBodega)
 def cambiar_estado_a_bin_bodega_posterior_a_eliminacion(sender, instance, **kwargs):
