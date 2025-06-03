@@ -284,7 +284,7 @@ class MermaPorcentajeSerializer(serializers.Serializer):
     exportable = serializers.FloatField()
     cat2 = serializers.FloatField()
     des = serializers.FloatField()
-    
+      
 class CalculoFinalSerializer(serializers.Serializer):
     kilos_netos = serializers.FloatField()
     kilos_brutos = serializers.FloatField()
