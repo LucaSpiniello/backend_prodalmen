@@ -1264,7 +1264,6 @@ class ReprocesoViewSet(viewsets.ModelViewSet):
                 bodega = BodegaG2Reproceso.objects.get(reproceso = bin)
                 variedad = bodega.get_variedad_display()
                 calibre = bodega.get_calibre_display()
-                
             kilos_fruta = round(bin.peso - bin.tipo_patineta, 2)
             codigo_tarja = bin.codigo_tarja
             fecha_creacion = bin.fecha_creacion

@@ -11,8 +11,10 @@ from django.contrib.contenttypes.models import ContentType
 class CCTarjaResultanteProduccionSerializer(serializers.ModelSerializer):
     cc_registrado_por = serializers.StringRelatedField()
     class Meta:
-        model = CCTarjaResultante
-        fields = ['estado_cc', 'variedad', 'calibre', 'cantidad_muestra', 'trozo', 'picada', 'hongo', 
+        model = CCTarjaResultante 
+        # i need to return the calibre_display from the model
+        
+        fields = ['estado_cc', 'variedad', 'get_calibre', 'cantidad_muestra', 'trozo', 'picada', 'hongo', 
                   'daño_insecto', 'dobles', 'goma', 'basura', 'mezcla_variedad', 'canuto', 'pepa_sana', 
                   'fuera_color', 'punto_goma', 'vana_deshidratada', 'cc_registrado_por']
 

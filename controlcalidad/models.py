@@ -141,6 +141,15 @@ class CCTarjaResultante(ModeloBaseHistorico):
         verbose_name = ('CC Tarja Resultante Producción')
         verbose_name_plural = ('3. CC Tarjas Resultantes Producción')
         ordering = ('-pk', '-fecha_creacion')        
+    
+    # return calibre de la tarja resultante
+    @property
+    def get_calibre(self):
+        if self.calibre:
+            print(CALIBRES[0][1][int(self.calibre)][1])
+            return CALIBRES[0][1][int(self.calibre)][1]
+        else:
+            return 'Sin Calibre'
 
     def __str__(self):
         return "CC %s de la tarja %s"% (self.pk, self.tarja.codigo_tarja)
