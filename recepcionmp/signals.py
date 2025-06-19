@@ -15,12 +15,17 @@ def sugerir_numero_faltante(numeros):
             return i
     return len(numeros) + 1
 
+def sugerir_numero_mayor_mas_uno(numeros):
+    if not numeros:
+        return 1
+    return max(numeros) + 1
+
 @receiver(post_save, sender=RecepcionMp)
 def crear_cc_y_generar_numero_lote(sender, instance, created, **kwargs):
     if created and instance:
         CCRecepcionMateriaPrima.objects.update_or_create(recepcionmp=instance)
         numeros_lote_existentes = RecepcionMp.objects.all().exclude(numero_lote=0).values_list('numero_lote', flat=True)       
-        instance.numero_lote = sugerir_numero_faltante(numeros_lote_existentes)
+        instance.numero_lote = sugerir_numero_mayor_mas_uno(numeros_lote_existentes)
         instance.save()
         
 @receiver(pre_delete, sender=GuiaRecepcionMP)
