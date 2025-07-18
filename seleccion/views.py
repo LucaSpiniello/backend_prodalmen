@@ -21,11 +21,24 @@ from datetime import datetime, timedelta, time
 # impoer TIPO_RESULTANTE_SELECCION from estados_modelo
 from .estados_modelo import TIPO_RESULTANTE_SELECCION
 from core.etiquetas import etiqueta_seleccion
+from cuentas.models import PersonalizacionPerfil
 
 class SeleccionViewSet(viewsets.ModelViewSet):
     queryset = Seleccion.objects.all()
     serializer_class = SeleccionSerializer
-    
+
+    def get_queryset(self):
+        user = self.request.user
+        try:
+            anio = PersonalizacionPerfil.objects.get(usuario= user).anio
+            if anio == 'Todo':
+                return self.queryset
+            else:
+                qs = Seleccion.objects.filter(fecha_creacion__year = anio)
+                return qs
+        except:
+            return self.queryset
+            
     @action(detail=True, methods=['GET'])
     def subproducto_metricas(self, request, pk=None):
         obj = self.get_object()

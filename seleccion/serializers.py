@@ -85,7 +85,7 @@ class SeleccionSerializer(serializers.ModelSerializer):
     estado_programa_label = serializers.SerializerMethodField()
     registrado_por_label = serializers.SerializerMethodField()
     email_registrador = serializers.SerializerMethodField()
-    #diferencia_rendimiento = serializers.SerializerMethodField()
+
     totales_kilos = serializers.SerializerMethodField()
     kilos_porcentaje = serializers.SerializerMethodField()
     condicion_cierre = serializers.SerializerMethodField()

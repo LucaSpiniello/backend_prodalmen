@@ -17,6 +17,7 @@ from .funciones import *
 from django.utils.timezone import make_aware, is_naive
 from datetime import datetime, timedelta
 from core.etiquetas import etiqueta_produccion
+
 class ProduccionViewSet(viewsets.ModelViewSet):
     queryset = Produccion.objects.all()
     serializer_class = ProduccionSerializer
