@@ -68,6 +68,96 @@ class SeleccionViewSet(viewsets.ModelViewSet):
 
         return Response(resultados)
 
+    @action(detail=False, methods=['GET'], url_path='programas-paginados')
+    def programas_paginados(self, request):
+        """
+        Endpoint para obtener programas de selección paginados por rango de índices.
+        
+        Este endpoint optimiza el rendimiento al retornar solo los programas que están
+        en el rango especificado, manteniendo el orden cronológico (fecha_creacion ascendente).
+        
+        Parámetros de query:
+        - desde: índice inicial del rango (número entero, base 0) - REQUERIDO
+        - hasta: índice final del rango (número entero, base 0) - REQUERIDO
+        
+        Ejemplos de uso:
+        - GET /api/seleccion/programas-paginados/?desde=0&hasta=9  // Primeros 10 programas
+        - GET /api/seleccion/programas-paginados/?desde=10&hasta=19 // Siguientes 10 programas
+        - GET /api/seleccion/programas-paginados/?desde=20&hasta=29 // Programas 20-29
+        
+        Respuesta:
+        {
+            "resultados": [...],  // Lista de programas de selección en el rango
+            "rango": {
+                "desde": 0,
+                "hasta": 9,
+                "total_programas": 50,
+                "programas_en_rango": 10
+            }
+        }
+        """
+        desde = request.query_params.get('desde')
+        hasta = request.query_params.get('hasta')
+        
+        if desde is None or hasta is None:
+            return Response({
+                'error': 'Los parámetros "desde" y "hasta" son requeridos (números enteros)'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            desde_idx = int(desde)
+            hasta_idx = int(hasta)
+        except ValueError:
+            return Response({
+                'error': 'Los parámetros "desde" y "hasta" deben ser números enteros'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validar que los índices sean válidos
+        if desde_idx < 0:
+            return Response({
+                'error': 'El parámetro "desde" debe ser mayor o igual a 0'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if hasta_idx < desde_idx:
+            return Response({
+                'error': 'El parámetro "hasta" debe ser mayor o igual a "desde"'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Obtener el queryset base con filtros de usuario y ordenar por fecha_creacion ascendente
+        queryset = self.get_queryset().order_by('fecha_creacion')
+        
+        # Calcular el total de programas disponibles
+        total_programas = queryset.count()
+        
+        # Validar que el rango no exceda el total de programas
+        if desde_idx >= total_programas:
+            return Response({
+                'error': f'El índice "desde" ({desde_idx}) excede el total de programas disponibles ({total_programas})'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Ajustar el índice "hasta" si excede el total de programas
+        hasta_idx = min(hasta_idx, total_programas - 1)
+        
+        # Obtener los programas en el rango especificado
+        # Usamos [desde_idx:hasta_idx+1] porque hasta_idx es inclusivo
+        programas_rango = queryset[desde_idx:hasta_idx + 1]
+        
+        # Serializar los datos
+        serializer = self.get_serializer(programas_rango, many=True)
+        
+        # Calcular cuántos programas hay en el rango
+        programas_en_rango = len(serializer.data)
+        
+        return Response({
+            'resultados': serializer.data,
+            'rango': {
+                'desde': desde_idx,
+                'hasta': hasta_idx,
+                'total_programas': total_programas,
+                'programas_en_rango': programas_en_rango
+            }
+        }, status=status.HTTP_200_OK)
+
         # create a get enp to get all the proccesed bins
     @action(detail=False, methods=['GET'], url_path='get_all_info')
     def get_all_info(self, request, seleccion_pk=None):
