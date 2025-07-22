@@ -96,6 +96,7 @@ class SeleccionViewSet(viewsets.ModelViewSet):
             }
         }
         """
+        time_inicio = datetime.now()
         desde = request.query_params.get('desde')
         hasta = request.query_params.get('hasta')
         
@@ -123,8 +124,8 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                 'error': 'El parámetro "hasta" debe ser mayor o igual a "desde"'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Obtener el queryset base con filtros de usuario y ordenar por fecha_creacion ascendente
-        queryset = self.get_queryset().order_by('fecha_creacion')
+        # Obtener el queryset base con filtros de usuario y ordenar por fecha_creacion descendente
+        queryset = self.get_queryset().order_by('-fecha_creacion')
         
         # Calcular el total de programas disponibles
         total_programas = queryset.count()
@@ -147,7 +148,8 @@ class SeleccionViewSet(viewsets.ModelViewSet):
         
         # Calcular cuántos programas hay en el rango
         programas_en_rango = len(serializer.data)
-        
+        time_fin = datetime.now()
+        print(f'Tiempo de ejecución: {time_fin - time_inicio}')
         return Response({
             'resultados': serializer.data,
             'rango': {
