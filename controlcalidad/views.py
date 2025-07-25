@@ -18,6 +18,7 @@ from django.db import transaction
 from django.core.mail import EmailMessage, get_connection
 from django.db.models import Sum, Avg, F
 from django.conf import settings
+from datetime import datetime
 
 class CCRecepcionMateriaPrimaVBViewSet(viewsets.ModelViewSet):
     search_fields = ['recepcionmp__id']
@@ -174,6 +175,98 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         ccrecepcionmp = get_object_or_404(CCRecepcionMateriaPrima, pk=pk)
         serializer = self.get_serializer(ccrecepcionmp)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['GET'], url_path='controles-paginados')
+    def controles_paginados(self, request):
+        """
+        Endpoint para obtener controles de calidad paginados por rango de índices.
+        
+        Este endpoint optimiza el rendimiento al retornar solo los controles que están
+        en el rango especificado, manteniendo el orden cronológico (fecha_creacion descendente).
+        
+        Parámetros de query:
+        - desde: índice inicial del rango (número entero, base 0) - REQUERIDO
+        - hasta: índice final del rango (número entero, base 0) - REQUERIDO
+        
+        Ejemplos de uso:
+        - GET /api/control-calidad/recepcionmp/controles-paginados/?desde=0&hasta=9  // Primeros 10 controles
+        - GET /api/control-calidad/recepcionmp/controles-paginados/?desde=10&hasta=19 // Siguientes 10 controles
+        - GET /api/control-calidad/recepcionmp/controles-paginados/?desde=20&hasta=29 // Controles 20-29
+        
+        Respuesta:
+        {
+            "resultados": [...],  // Lista de controles de calidad en el rango
+            "rango": {
+                "desde": 0,
+                "hasta": 9,
+                "total_controles": 50,
+                "controles_en_rango": 10
+            }
+        }
+        """
+        time_inicio = datetime.now()
+        desde = request.query_params.get('desde')
+        hasta = request.query_params.get('hasta')
+        
+        if desde is None or hasta is None:
+            return Response({
+                'error': 'Los parámetros "desde" y "hasta" son requeridos (números enteros)'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            desde_idx = int(desde)
+            hasta_idx = int(hasta)
+        except ValueError:
+            return Response({
+                'error': 'Los parámetros "desde" y "hasta" deben ser números enteros'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validar que los índices sean válidos
+        if desde_idx < 0:
+            return Response({
+                'error': 'El parámetro "desde" debe ser mayor o igual a 0'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if hasta_idx < desde_idx:
+            return Response({
+                'error': 'El parámetro "hasta" debe ser mayor o igual a "desde"'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Obtener el queryset base con filtros de usuario y ordenar por fecha_creacion descendente
+        queryset = self.get_queryset().exclude(estado_cc='0').order_by('-fecha_creacion')
+        
+        # Calcular el total de controles disponibles
+        total_controles = queryset.count()
+        
+        # Validar que el rango no exceda el total de controles
+        if desde_idx >= total_controles:
+            return Response({
+                'error': f'El índice "desde" ({desde_idx}) excede el total de controles disponibles ({total_controles})'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Ajustar el índice "hasta" si excede el total de controles
+        hasta_idx = min(hasta_idx, total_controles - 1)
+        
+        # Obtener los controles en el rango especificado
+        # Usamos [desde_idx:hasta_idx+1] porque hasta_idx es inclusivo
+        controles_rango = queryset[desde_idx:hasta_idx + 1]
+        
+        # Serializar los datos
+        serializer = self.get_serializer(controles_rango, many=True)
+        
+        # Calcular cuántos controles hay en el rango
+        controles_en_rango = len(serializer.data)
+        time_fin = datetime.now()
+        print(f'Tiempo de ejecución: {time_fin - time_inicio}')
+        return Response({
+            'resultados': serializer.data,
+            'rango': {
+                'desde': desde_idx,
+                'hasta': hasta_idx,
+                'total_controles': total_controles,
+                'controles_en_rango': controles_en_rango
+            }
+        }, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'])
     def total_guias_cc_recepcion_aprobadas(self, request):
