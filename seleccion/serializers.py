@@ -210,8 +210,11 @@ class DetalleTarjaSeleccionadaSerializer(serializers.ModelSerializer):
         fields = '__all__'
         
     def get_variedad(self, obj):
-        calibracion = CCTarjaSeleccionada.objects.get(tarja_seleccionada=obj)
-        return calibracion.get_variedad_display()
+        try:
+            calibracion = CCTarjaSeleccionada.objects.get(tarja_seleccionada=obj)
+            return calibracion.get_variedad_display()
+        except CCTarjaSeleccionada.DoesNotExist:
+            return "Sin variedad"
         
     def get_calidad(self, obj):
         try:
@@ -239,8 +242,11 @@ class DetalleTarjaSeleccionadaSerializer(serializers.ModelSerializer):
             return "Sin calidad"
     
     def get_calibre(self, obj):
-        calibracion = CCTarjaSeleccionada.objects.get(tarja_seleccionada=obj)
-        return calibracion.get_calibre_display()
+        try:
+            calibracion = CCTarjaSeleccionada.objects.get(tarja_seleccionada=obj)
+            return calibracion.get_calibre_display()
+        except CCTarjaSeleccionada.DoesNotExist:
+            return "Sin calibre"
 
 class SubProductoOperarioSerializer(serializers.ModelSerializer):
     operario_nombres = serializers.SerializerMethodField()
@@ -408,8 +414,6 @@ class OperariosAgregadosSeleccionSerializer(serializers.Serializer):
     total_kilos_producidos = serializers.FloatField()
     dias_trabajados = serializers.IntegerField()      
     
-    
-from simple_history.utils import update_change_reason
 
 class BinSubProductoSeleccionHistorySerializer(serializers.ModelSerializer):
     class Meta:
