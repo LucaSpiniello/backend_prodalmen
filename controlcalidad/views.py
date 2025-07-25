@@ -187,11 +187,13 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         Parámetros de query:
         - desde: índice inicial del rango (número entero, base 0) - REQUERIDO
         - hasta: índice final del rango (número entero, base 0) - REQUERIDO
+        - comercializador: nombre del comercializador (opcional) - si es "Pacific Nut" filtra por comercializador
         
         Ejemplos de uso:
         - GET /api/control-calidad/recepcionmp/controles-paginados/?desde=0&hasta=9  // Primeros 10 controles
         - GET /api/control-calidad/recepcionmp/controles-paginados/?desde=10&hasta=19 // Siguientes 10 controles
         - GET /api/control-calidad/recepcionmp/controles-paginados/?desde=20&hasta=29 // Controles 20-29
+        - GET /api/control-calidad/recepcionmp/controles-paginados/?desde=0&hasta=9&comercializador=Pacific Nut // Controles filtrados por Pacific Nut
         
         Respuesta:
         {
@@ -207,6 +209,7 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         time_inicio = datetime.now()
         desde = request.query_params.get('desde')
         hasta = request.query_params.get('hasta')
+        comercializador = request.query_params.get('comercializador', None)
         
         if desde is None or hasta is None:
             return Response({
@@ -234,6 +237,12 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
         
         # Obtener el queryset base con filtros de usuario y ordenar por fecha_creacion descendente
         queryset = self.get_queryset().exclude(estado_cc='0').order_by('-fecha_creacion')
+        
+        # Aplicar filtro por comercializador si es Pacific Nut
+        if comercializador == 'Pacific Nut':
+            queryset = queryset.filter(
+                recepcionmp__guiarecepcion__comercializador__nombre=comercializador,
+            )
         
         # Calcular el total de controles disponibles
         total_controles = queryset.count()
