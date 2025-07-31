@@ -919,6 +919,56 @@ class TarjaSeleccionadaViewSet(viewsets.ModelViewSet):
         else:
             return Response({ 'message': 'No se puede eliminar la tarja una vez se a calibrado '}, status=status.HTTP_400_BAD_REQUEST)    
     
+    @action(detail=False, methods=['DELETE'], url_path='eliminar_tarja_completa')
+    def eliminar_tarja_completa(self, request, seleccion_pk=None):
+        """
+        Endpoint para eliminar completamente una tarja de selección y sus controles de calidad asociados.
+        
+        Este endpoint elimina permanentemente la tarja y todos sus datos relacionados,
+        incluyendo controles de calidad, independientemente de si tienen CC o no.
+        
+        Parámetros requeridos en el body:
+        - codigo_tarja: Código de la tarja seleccionada que se quiere eliminar
+        
+        Respuesta:
+        - 200: Tarja eliminada exitosamente
+        - 400: Error en los datos de entrada
+        - 404: Tarja no encontrada
+        """
+        codigo_tarja = request.data.get('codigo_tarja')
+        
+        if not codigo_tarja:
+            return Response({
+                'error': 'El parámetro "codigo_tarja" es requerido en el body'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Buscar la tarja en la selección específica por código
+            seleccion = get_object_or_404(Seleccion, pk=seleccion_pk)
+            tarja = get_object_or_404(self.get_queryset(), seleccion=seleccion, codigo_tarja=codigo_tarja)
+            
+            # Guardar información de la tarja antes de eliminarla para la respuesta
+            tarja_info = {
+                'id': tarja.pk,
+                'codigo_tarja': tarja.codigo_tarja,
+                'tipo_resultante': tarja.get_tipo_resultante_display(),
+                'peso': tarja.peso,
+                'tenia_control_calidad': tarja.cc_tarja
+            }
+            
+            # Eliminar la tarja (esto automáticamente eliminará el control de calidad por CASCADE)
+            tarja.delete()
+            
+            return Response({
+                'message': 'Tarja eliminada exitosamente junto con sus controles de calidad',
+                'tarja_eliminada': tarja_info
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'error': f'Error al eliminar la tarja: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
     @action(detail=True, methods=['PUT', 'PATCH'], url_path='reimprimir_codigo')
     def reimprimir_codigo(self, request, seleccion_pk=None, pk=None):
         tarja = get_object_or_404(self.get_queryset(), pk=pk)
