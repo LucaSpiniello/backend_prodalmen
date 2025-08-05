@@ -82,6 +82,76 @@ class GuiaRecepcionMPViewSet(viewsets.ModelViewSet):
             'total_kilos_pacificnut': total_kilos_pacific
         }
         return Response(data, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['POST'], url_path='editar_productor')
+    def editar_productor(self, request):
+        """
+        Asigna un productor diferente a una guía de recepción.
+        Recibe el id de la guía y el id del nuevo productor.
+        """
+        try:
+            print("LLEGAAA")
+            guia_id = request.data.get('guia_id')
+            productor_id = request.data.get('productor_id')
+            
+            if not guia_id:
+                return Response(
+                    {"error": "El campo 'guia_id' es requerido"}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if not productor_id:
+                return Response(
+                    {"error": "El campo 'productor_id' es requerido"}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Buscar la guía por ID
+            guia = get_object_or_404(GuiaRecepcionMP, pk=guia_id)
+            print(f'Guía encontrada: {guia.pk}, Productor actual: {guia.productor.nombre} (ID: {guia.productor.pk})')
+            
+            # Buscar el nuevo productor por ID
+            from productores.models import Productor
+            nuevo_productor = get_object_or_404(Productor, pk=productor_id)
+            print(f'Nuevo productor encontrado: {nuevo_productor.nombre} (ID: {nuevo_productor.pk})')
+            
+            # Asignar el nuevo productor a la guía
+            productor_anterior = guia.productor
+            guia.productor = nuevo_productor
+            print(f'Se asignó el productor {nuevo_productor.nombre} a la guía {guia_id}')
+            guia.save()
+            print(f'Se cambió el productor de "{productor_anterior.nombre}" (ID: {productor_anterior.pk}) a "{nuevo_productor.nombre}" (ID: {nuevo_productor.pk}) para la guía {guia_id}')
+            
+            # Serializar y devolver la guía actualizada
+            serializer = self.get_serializer(guia)
+            return Response({
+                "message": "Productor asignado correctamente a la guía",
+                "guia": serializer.data,
+                "productor_anterior": {
+                    "id": productor_anterior.pk,
+                    "nombre": productor_anterior.nombre
+                },
+                "productor_nuevo": {
+                    "id": nuevo_productor.pk,
+                    "nombre": nuevo_productor.nombre
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except GuiaRecepcionMP.DoesNotExist:
+            return Response(
+                {"error": "Guía de recepción no encontrada"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Productor.DoesNotExist:
+            return Response(
+                {"error": "Productor no encontrado"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Error al asignar el productor: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
             
         
     
