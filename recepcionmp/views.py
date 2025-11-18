@@ -69,12 +69,20 @@ class GuiaRecepcionMPViewSet(viewsets.ModelViewSet):
         for lote in queryset_prodalmen:
             kilos_brutos = lote.kilos_brutos_1 + lote.kilos_brutos_2
             kilos_tara = lote.kilos_tara_1 + lote.kilos_tara_2
-            kilos_neto = kilos_brutos - kilos_tara
+            # Calcular peso de los envases
+            kilos_envases = 0
+            for envase in lote.envasesguiarecepcionmp_set.all():
+                kilos_envases += envase.envase.peso * envase.cantidad_envases
+            kilos_neto = kilos_brutos - kilos_tara - kilos_envases
             total_kilos_prodalmen += kilos_neto
         for lote in queryset_pacificnut:
             kilos_brutos = lote.kilos_brutos_1 + lote.kilos_brutos_2
             kilos_tara = lote.kilos_tara_1 + lote.kilos_tara_2
-            kilos_neto = kilos_brutos - kilos_tara
+            # Calcular peso de los envases
+            kilos_envases = 0
+            for envase in lote.envasesguiarecepcionmp_set.all():
+                kilos_envases += envase.envase.peso * envase.cantidad_envases
+            kilos_neto = kilos_brutos - kilos_tara - kilos_envases
             total_kilos_pacific += kilos_neto
         # return the total kilos for each comercializador
         data = {

@@ -44,19 +44,42 @@ class RecepcionListMpSerializer(serializers.ModelSerializer):
     envases = EnvasesGuiaRecepcionSerializer(many=True, read_only=True, source='envasesguiarecepcionmp_set')
     estado_label = serializers.SerializerMethodField()
     lote_rechazado = serializers.SerializerMethodField()
-        
+    kilos_neto_fruta = serializers.SerializerMethodField()
+    kilos_envases = serializers.SerializerMethodField()
+    variedad = serializers.SerializerMethodField()
+
     def get_lote_rechazado(self, obj):
         if obj.estado_recepcion == '4':
             rechazo = LoteRecepcionMpRechazadoPorCC.objects.get(recepcionmp=obj)
-            
+
             return LoteRechazadoSerializer(rechazo).data
         else:
             return None
-    
+
+    def get_kilos_envases(self, obj):
+        total_peso = 0
+        for envase in obj.envasesguiarecepcionmp_set.all():
+            total_peso += envase.envase.peso * envase.cantidad_envases
+
+        return total_peso
+
+    def get_kilos_neto_fruta(self, obj):
+        kilos_brutos = (obj.kilos_brutos_1 + obj.kilos_brutos_2) - (obj.kilos_tara_1 + obj.kilos_tara_2)
+        total_peso = 0
+        for envase in obj.envasesguiarecepcionmp_set.all():
+            total_peso += envase.envase.peso * envase.cantidad_envases
+
+        return kilos_brutos - total_peso
+
+    def get_variedad(self, obj):
+        if obj.envasesguiarecepcionmp_set.all().exists():
+            return obj.envasesguiarecepcionmp_set.all().first().get_variedad_display()
+        return ''
+
     class Meta:
         model = RecepcionMp
         fields = '__all__'
-        
+
     def get_estado_label(self, obj):
         return obj.get_estado_recepcion_display()
 
