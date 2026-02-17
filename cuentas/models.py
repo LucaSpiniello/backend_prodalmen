@@ -73,7 +73,7 @@ class PersonalizacionPerfil(models.Model):
     activa = models.BooleanField(default= False)
     estilo = models.CharField(max_length = 15, choices = ESTILO_CHOICES, default= 'minimal-theme')
     cabecera = models.CharField(max_length = 1, choices = CABECERA_CHOICES, default= '4')
-    anio = models.CharField(max_length=4, choices=ANIO, default='2024')
+    anio = models.CharField(max_length=4, choices=ANIO, default='2026')
     iot_balanza_recepcionmp = models.CharField(max_length=50, choices=ESTADO_IOT_BALANZA_RECEPCIONMP, default='Automático')
 
     class Meta:
