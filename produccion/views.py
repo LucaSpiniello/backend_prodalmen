@@ -22,8 +22,10 @@ class ProduccionViewSet(viewsets.ModelViewSet):
     queryset = Produccion.objects.all()
     serializer_class = ProduccionSerializer
     permission_classes = [IsAuthenticated,]
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return Produccion.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio
@@ -221,11 +223,31 @@ class ProduccionViewSet(viewsets.ModelViewSet):
             #     if suma_kilos_fruta is not None:
             #         kilos_fruta += suma_kilos_fruta
 
-            #     if envase.guia_patio.tipo_recepcion.model == 'recepcionmp':
-            #         numero_lote = envase.guia_patio.lote_recepcionado.numero_lote
-            #         productor = envase.guia_patio.lote_recepcionado.guiarecepcion.productor.nombre
-            #         comercializador = envase.guia_patio.lote_recepcionado.guiarecepcion.comercializador.nombre
-            #         variedad = envase.guia_patio.lote_recepcionado.envasesguiarecepcionmp_set.first().get_variedad_display()
+            for lote in LotesPrograma.objects.filter(produccion__in=queryset):
+                kilos_fruta = 0
+                envase = EnvasesPatioTechadoExt.objects.get(pk=lote.bodega_techado_ext.pk)
+                cantidad_envases = PatioTechadoExterior.objects.get(pk=envase.guia_patio.pk).envasespatiotechadoext_set.all().count()
+                suma_kilos_fruta = lote.bodega_techado_ext.kilos_fruta
+                if suma_kilos_fruta is not None:
+                    kilos_fruta += suma_kilos_fruta
+
+                if envase.guia_patio.tipo_recepcion.model == 'recepcionmp':
+                    numero_lote = envase.guia_patio.lote_recepcionado.numero_lote
+                    productor = envase.guia_patio.lote_recepcionado.guiarecepcion.productor.nombre
+                    comercializador = envase.guia_patio.lote_recepcionado.guiarecepcion.comercializador.nombre
+                    variedad = envase.guia_patio.lote_recepcionado.envasesguiarecepcionmp_set.first().get_variedad_display()
+
+                    if numero_lote not in resultados:
+                        resultados[numero_lote] = {
+                            'numero_lote': numero_lote,
+                            'total_envases': cantidad_envases,
+                            'productor': productor,
+                            'variedad': variedad,
+                            'numero_programa': lote.produccion.pk,
+                            'kilos_fruta': round(kilos_fruta,2)
+                        }
+                    else:
+                        resultados[numero_lote]['kilos_fruta'] += round(kilos_fruta, 2)
 
             #         if numero_lote not in resultados:
             #             resultados[numero_lote] = {
@@ -305,24 +327,24 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                         ).pago_x_kilo
                     except SkillOperario.DoesNotExist:
                         pago_x_kilo_operario_ayud_patio = 0
-                    
+
                     # Intenta obtener el pago por kilo para op descascarado
-                    
+
                     try:
                         pago_x_kilo_operario_descascarado = SkillOperario.objects.get(
                             operario=operario_en_programa.operario, tipo_operario='op_desca'
                         ).pago_x_kilo
                     except SkillOperario.DoesNotExist:
                         pago_x_kilo_operario_descascarado = 0
-                        
 
-                        
+
+
                     operarios_skill_pre_limpia = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='p_limpia')
-                
+
                     operarios_skill_despelo = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='despelo')
-                    
+
                     operarios_skill_descasarado = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='op_desca')
-                    
+
                     operarios_skill_ayud_patio = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='ayud_patio')
                     
                     have_skill_pre_limpia_in_program = any(
@@ -334,14 +356,14 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                         operario_en_programa.operario == operario_en_produccion.operario 
                         for operario_en_produccion in operarios_skill_despelo
                     )
-                    
+
                     have_skill_descascarado_in_program = any(
-                        operario_en_programa.operario == operario_en_produccion.operario 
+                        operario_en_programa.operario == operario_en_produccion.operario
                         for operario_en_produccion in operarios_skill_descasarado
                     )
-                    
+
                     have_skill_ayud_patio_in_program = any(
-                        operario_en_programa.operario == operario_en_produccion.operario 
+                        operario_en_programa.operario == operario_en_produccion.operario
                         for operario_en_produccion in operarios_skill_ayud_patio
                     )
 
@@ -381,7 +403,6 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                         resultado_seria[nombre_operario]['ayud_patio'] += round(total_ayud_patio,2) if pago_x_kilo_operario_ayud_patio > 0 else "No Tiene este Skill"
                         resultado_seria[nombre_operario]['descascarado'] += round(total_descascarado,2) if pago_x_kilo_operario_descascarado > 0 else "No Tiene este Skill"
                         resultado_seria[nombre_operario]['neto'] += round(total_prelimpia + total_despelonada + total_descascarado + total_ayud_patio, 2)
-                        
                     
             
             return Response(list(resultado_seria.values()), status=status.HTTP_200_OK)
@@ -454,7 +475,7 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                     ).aggregate(
                         total_kilos=models.Sum(models.F('peso') - models.F('tipo_patineta'))
                     )['total_kilos'] or 0
-                    
+
                     total_kilos_ayud_patio_operario = LotesPrograma.objects.filter(
                         produccion=programa,
                         bin_procesado=True,
@@ -462,35 +483,35 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                     ).aggregate(
                         total_kilos=models.Sum('bodega_techado_ext__kilos_fruta')
                     )['total_kilos'] or 0
-                    
-                    
+
+
                     operarios_skill_pre_limpia = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='p_limpia')
-                
+
                     operarios_skill_despelo = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='despelo')
-                    
+
                     operarios_skill_descascarado = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='op_desca')
-                    
+
                     operarios_skill_ayud_patio = OperariosEnProduccion.objects.filter(produccion=programa.pk, skill_operario='ayud_patio')
-                    
+
                     have_skill_pre_limpia_in_program = any(
-                        operario_select == operario_en_produccion.operario 
+                        operario_select == operario_en_produccion.operario
                         for operario_en_produccion in operarios_skill_pre_limpia
                     )
 
                     have_skill_despelo_in_program = any(
-                        operario_select == operario_en_produccion.operario 
+                        operario_select == operario_en_produccion.operario
                         for operario_en_produccion in operarios_skill_despelo
-)                   
+                    )
                     have_skill_descascarado_in_program = any(
-                        operario_select == operario_en_produccion.operario 
+                        operario_select == operario_en_produccion.operario
                         for operario_en_produccion in operarios_skill_descascarado
                     )
-                    
+
                     have_skill_ayud_patio_in_program = any(
-                        operario_select == operario_en_produccion.operario 
+                        operario_select == operario_en_produccion.operario
                         for operario_en_produccion in operarios_skill_ayud_patio
                     )
-                    
+
                           
                     # Intenta obtener el pago por kilo para pre_limpia
                     try:
@@ -641,7 +662,8 @@ class ProduccionViewSet(viewsets.ModelViewSet):
                         dia=laborable_date,
                         defaults={'kilos_dia': kilos_dia_actual}                                                                                                        
                     )
-                 
+
+
         
             for operario_despelo in operarios_despelo:
                     
@@ -1045,12 +1067,14 @@ class ProduccionViewSet(viewsets.ModelViewSet):
         
         
         
-class LotesProgramaViewSet(viewsets.ModelViewSet):  
+class LotesProgramaViewSet(viewsets.ModelViewSet):
     queryset = LotesPrograma.objects.all()
     serializer_class = LotesProgramaSerializer
     permission_classes = [IsAuthenticated,]
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return LotesPrograma.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio
@@ -1116,8 +1140,10 @@ class TarjaResultanteViewSet(viewsets.ModelViewSet):
     queryset = TarjaResultante.objects.all()
     serializer_class = TarjaResultanteSerializer
     permission_classes = [IsAuthenticated,]
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return TarjaResultante.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio
@@ -1190,8 +1216,10 @@ class ReprocesoViewSet(viewsets.ModelViewSet):
     queryset = Reproceso.objects.all()
     serializer_class = ReprocesoSerializer
     permission_classes = [IsAuthenticated,]
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return Reproceso.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio
@@ -1592,8 +1620,10 @@ class BinsEnReprocesoViewSet(viewsets.ModelViewSet):
     queryset = BinsEnReproceso.objects.all()
     serializer_class = BinsEnReprocesoSerializer
     permission_classes = [IsAuthenticated,]
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return BinsEnReproceso.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio
@@ -1646,8 +1676,10 @@ class TarjaResultanteReprocesoViewSet(viewsets.ModelViewSet):
     queryset = TarjaResultanteReproceso.objects.all()
     serializer_class = TarjaResultanteReprocesoSerializer
     permission_classes = [IsAuthenticated,]
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return TarjaResultanteReproceso.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio

@@ -27,8 +27,10 @@ class CCRecepcionMateriaPrimaVBViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated,]
     filter_backends = (DjangoFilterBackend,)
     filterset_class = CCRecepcionMateriaPrimaFilter
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return CCRecepcionMateriaPrima.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio
@@ -50,9 +52,6 @@ class CCRecepcionMateriaPrimaVBViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(ccrecepcionmp)
         return Response(serializer.data)
     
-    
-
-        
     
 
     @action(detail=False, methods=['get'])
@@ -148,8 +147,10 @@ class CCRecepcionMateriaPrimaViewSet(viewsets.ModelViewSet):
     queryset = CCRecepcionMateriaPrima.objects.all()
     # lookup_field = 'recepcionmp'
     permission_classes = [IsAuthenticated,]
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return CCRecepcionMateriaPrima.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio
@@ -600,8 +601,10 @@ class CCRendimientoViewSet(viewsets.ModelViewSet):
     queryset = CCRendimiento.objects.all()
     serializer_class = CCRendimientoSerializer
     permission_classes = [IsAuthenticated,]
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return CCRendimiento.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio
@@ -628,8 +631,10 @@ class CCPepaViewSet(viewsets.ModelViewSet):
     queryset = CCPepa.objects.all()
     serializer_class = CCPepaSerializer
     permission_classes = [IsAuthenticated,]
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return CCPepa.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio
@@ -662,8 +667,10 @@ class CCTarjaResultanteViewSet(viewsets.ModelViewSet):
     queryset = CCTarjaResultante.objects.all()
     serializer_class = CCTarjaResultanteSerializer
     permission_classes = [IsAuthenticated,]
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return CCTarjaResultante.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio
@@ -705,8 +712,10 @@ class CCTarjaResultanteReprocesoViewSet(viewsets.ModelViewSet):
     queryset = CCTarjaResultanteReproceso.objects.all()
     serializer_class = CCTarjaResultanteReprocesoSerializer
     permission_classes = [IsAuthenticated,]
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return CCTarjaResultanteReproceso.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio
@@ -725,36 +734,12 @@ class EstadoAprobacionJefaturaAPIView(generics.UpdateAPIView):
     queryset = CCRecepcionMateriaPrima.objects.all()
     serializer_class = EstadoAprobacionJefaturaSerializer
     permission_classes = [IsAuthenticated,]
-    
-    def get_queryset(self):
-        user = self.request.user
-        try:
-            anio = PersonalizacionPerfil.objects.get(usuario= user).anio
-            if anio == 'Todo':
-                return self.queryset
-            else:
-                qs = CCRecepcionMateriaPrima.objects.filter(fecha_creacion__year = anio)
-                return qs
-        except:
-            return self.queryset
-    
+
 class EstadoContraMuestraAPIView(generics.UpdateAPIView):
     lookup_field = 'id'
     queryset = CCRecepcionMateriaPrima.objects.all()
     serializer_class = EstadoContraMuestraSerializer
     permission_classes = [IsAuthenticated,]
-    
-    def get_queryset(self):
-        user = self.request.user
-        try:
-            anio = PersonalizacionPerfil.objects.get(usuario= user).anio
-            if anio == 'Todo':
-                return self.queryset
-            else:
-                qs = CCRecepcionMateriaPrima.objects.filter(fecha_creacion__year = anio)
-                return qs
-        except:
-            return self.queryset
         
         
 class CCTarjaSeleccionadaViewSet(viewsets.ModelViewSet):
@@ -764,6 +749,8 @@ class CCTarjaSeleccionadaViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated,]
     
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return CCTarjaSeleccionada.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio
@@ -774,15 +761,17 @@ class CCTarjaSeleccionadaViewSet(viewsets.ModelViewSet):
                 return qs
         except:
             return self.queryset
-    
-    
+
+
 class CCBinResultanteViewSet(viewsets.ModelViewSet):
     lookup_field = 'bin_resultante'
     queryset = CCBinResultanteProgramaPH.objects.all()
     serializer_class = CCBinResultanteProgramaPHSerializer
     permission_classes = [IsAuthenticated,]
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return CCBinResultanteProgramaPH.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio

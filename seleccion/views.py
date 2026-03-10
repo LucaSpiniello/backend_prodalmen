@@ -28,6 +28,8 @@ class SeleccionViewSet(viewsets.ModelViewSet):
     serializer_class = SeleccionSerializer
 
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return Seleccion.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio
@@ -337,14 +339,18 @@ class SeleccionViewSet(viewsets.ModelViewSet):
         if desde.date() > hoy:
             programas_seleccion = Seleccion.objects.none()  
         else:
-            programas_seleccion = Seleccion.objects.all()
-            
+            programas_seleccion = Seleccion.objects.filter(
+                Q(fecha_inicio_proceso__gte=desde, fecha_termino_proceso__lte=hasta) |
+                Q(fecha_termino_proceso__isnull=True, fecha_inicio_proceso__lte=hasta)
+            )
+
         resultados_informe = []
 
         for programa in programas_seleccion:
             tarjas_seleccionadas = TarjaSeleccionada.objects.filter(seleccion=programa.pk, fecha_creacion__gte=desde, fecha_creacion__lte=hasta)
             # cc_tarja_seleccionada = CCTarjaSeleccionada.objects.filter(tarja_seleccionada__in=tarjas_seleccionadas).first()
             for tarja in tarjas_seleccionadas:
+                print(f"Programa: {programa} tarja: {tarja.fecha_creacion}")
                 kilostarja = (tarja.peso - tarja.tipo_patineta)
                 producto = "Pepa Seleccionada"
                 if tarja.tipo_resultante == "1":
@@ -382,7 +388,10 @@ class SeleccionViewSet(viewsets.ModelViewSet):
         if desde.date() > hoy:
             programas_seleccion = Seleccion.objects.none()  
         else:
-            programas_seleccion = Seleccion.objects.all()
+            programas_seleccion = Seleccion.objects.filter(
+                Q(fecha_inicio_proceso__gte=desde, fecha_termino_proceso__lte=hasta) |
+                Q(fecha_termino_proceso__isnull=True, fecha_inicio_proceso__lte=hasta)
+            )
         
         operario = Operario.objects.get(pk = operario)     
         for programa in programas_seleccion:
@@ -455,7 +464,7 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                 Q(fecha_inicio_proceso__gte=desde, fecha_termino_proceso__lte=hasta) |  
                 Q(fecha_termino_proceso__isnull=True, fecha_inicio_proceso__lte=hasta)
             )
-        
+
         informe_agrupado = []
         
         for programa in programas_seleccion:
@@ -693,14 +702,14 @@ class SeleccionViewSet(viewsets.ModelViewSet):
                         peso_neto=F('peso') - F('tipo_patineta')  # Restar tipo_patineta del peso
                     ).aggregate(
                         total_kilos=Sum('peso_neto')  # Sumar los pesos netos
-                    )['total_kilos'] or 0 
+                    )['total_kilos'] or 0
                     DiaDeOperarioSeleccion.objects.update_or_create(
                         operario=operario,
                         dia=laborable_date,
                         defaults={'kilos_dia': total_kilos}
                     )
             operarios_seleccion_sub_productos = OperariosEnSeleccion.objects.filter(seleccion=seleccion, skill_operario='sub_prod')
-    
+
             for operario in operarios_seleccion_sub_productos:
                 for laborable_date in laborable_dates:
                     total_kilos = SubProductoOperario.objects.filter(

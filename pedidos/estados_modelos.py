@@ -14,7 +14,6 @@ NOMBRE_PRODUCTO = (
     ('1', 'Almendras'),
     ('2', 'Granillo'),
     ('3', 'Harina'),
-    ('4', 'Almendras Laminadas')
 )
 
 CALIDAD = (

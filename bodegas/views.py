@@ -26,8 +26,10 @@ class PatioTechadoExteriorViewset(viewsets.ModelViewSet):
     queryset = PatioTechadoExterior.objects.all()
     serializer_class = PatioTechadoExteriorSerializer
     permission_classes = [IsAuthenticated,]
-  
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return PatioTechadoExterior.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario=user).anio
@@ -87,6 +89,8 @@ class EnvasesPatioTechadoExteriorViewset(viewsets.ModelViewSet):
   permission_classes = [IsAuthenticated,]
   
   def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return EnvasesPatioTechadoExt.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario = user).anio
@@ -119,6 +123,8 @@ class BinBodegaViewSet(viewsets.ModelViewSet):
     filterset_class = BinBodegaFilter
     
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return BinBodega.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario=user).anio

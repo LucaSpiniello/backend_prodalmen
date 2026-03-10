@@ -118,12 +118,8 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
 
         for bin in bins:
             bin_id = bin.get('id')
-            bin_bodega = bin.get('bin_bodega')
             if bin_id is not None:
                 FrutaBodega.objects.filter(pk=bin_id).update(procesado=True)
-                # change to procesado the binbodega
-                BinBodega.objects.filter(pk=bin_bodega).update(procesado=True)
-                BinBodega.objects.filter(pk=bin_bodega).update(estado_binbodega='9')
                 fruta_procesada_ids.append(bin_id)
 
         # Obtener los objetos actualizados
@@ -157,16 +153,13 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
                     
             if total_peso == 0:
                 continue
-                
-            variedad = pallet.embalaje.get_variedad_display()if pallet.embalaje.get_variedad_display() else 'Indefinido'
-            calibre = pallet.embalaje.get_calibre_display() if pallet.embalaje.get_calibre_display() else 'Indefinido'
-            calidad = pallet.embalaje.get_calidad_display() if pallet.embalaje.get_calidad_display() else 'Indefinido'
+                  
             dic = {
                 "id": pallet.id,
                 "codigo_pallet": pallet.codigo_pallet,
-                "variedad": variedad,
-                "calibre": calibre,
-                "calidad": calidad,
+                "calidad": pallet.embalaje.get_calidad_display(),
+                "variedad": pallet.embalaje.get_variedad_display(),
+                "calibre": pallet.embalaje.get_calibre_display(),
                 "cantidad_cajas": cantidad_cajas,
                 "peso_pallet": round(total_peso, 2)
             }
@@ -182,6 +175,7 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
         pallet_id = request.query_params.get('id')
         embalaje_ids = self.get_queryset().values_list('id', flat=True)
         pallet = PalletProductoTerminado.objects.filter(embalaje__in=embalaje_ids, pk=pallet_id).first()
+        print(pallet)
         if not pallet:
             return Response({'error': 'PalletProductoTerminado no encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -267,7 +261,6 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['POST'])
     def pdf_informe_embalaje(self, request):
-        self.fix_bin_bodegas_fruta_bodega() # solo para corregir los errores, comentar luego esta linea!!!
         desde = request.data.get('desde').replace('Z', '')
         hasta = request.data.get('hasta').replace('Z', '')
         desde = datetime.strptime(desde, '%Y-%m-%dT%H:%M:%S.%f')
@@ -276,14 +269,15 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
         if desde.date() > hoy:
             programas_embalaje = Embalaje.objects.none()  
         else:
-            programas_embalaje = Embalaje.objects.all()
+            programas_embalaje = Embalaje.objects.filter(
+                Q(fecha_inicio_embalaje__gte=desde, fecha_termino_embalaje__lte=hasta) |  
+                Q(fecha_termino_embalaje__isnull=True, fecha_inicio_embalaje__lte=hasta)
+            )
             
         informe_programa = []
         for programa in programas_embalaje:
             bins_en_embalaje = FrutaBodega.objects.filter(embalaje = programa)
             pallets = PalletProductoTerminado.objects.filter(embalaje = programa, fecha_creacion__range=(desde, hasta))
-            if not pallets:
-                continue
             print(f"pallets {pallets}")
             variedades_unicas = set([obtener_variedad_embalaje(bin) for bin in bins_en_embalaje])
             variedad = 'Revueltas' if len(variedades_unicas) > 1 else variedades_unicas.pop()
@@ -294,6 +288,9 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
             
             if calidad != 'MultiCalidades':
                 calidad = dict(CALIDAD_FRUTA).get(calidad)
+            
+            if not pallets:
+                return Response([])
             
             for pallet in pallets:
                 dic = {
@@ -306,23 +303,10 @@ class EmbalajeViewSet(viewsets.ModelViewSet):
                     "producto": programa.get_tipo_producto_display(),
                     "calidad": calidad
                 }
-                print(f"pallet {pallet.codigo_pallet} kilos {obtener_kilos_fruta_pallet_embalaje(pallet)}")
+                
                 informe_programa.append(dic)
-
         return Response(informe_programa)
 
-    def fix_bin_bodegas_fruta_bodega(self):
-        all_fruta_bodega = FrutaBodega.objects.all()
-        print(" SOLUCIONANDO LOS BINS BODEGA DE FRUTA BODEGA")
-        for fruta_bodega in all_fruta_bodega:
-            bin_bodega = fruta_bodega.bin_bodega
-            if fruta_bodega.procesado == True and bin_bodega.procesado == False:
-                bin_bodega.procesado = True
-                bin_bodega.estado_binbodega = '9'
-                bin_bodega.save()
-        
-        
-        
     @action(detail=False, methods=['POST'])
     def pdf_kilos_por_operario(self, request):
         operario = request.data.get('operario')

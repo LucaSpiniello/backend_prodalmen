@@ -16,8 +16,10 @@ from rest_framework.decorators import action
 class GuiaRecepcionMPViewSet(viewsets.ModelViewSet):
     queryset = GuiaRecepcionMP.objects.all()
     permission_classes = [IsAuthenticated,]
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return GuiaRecepcionMP.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio
@@ -166,8 +168,10 @@ class GuiaRecepcionMPViewSet(viewsets.ModelViewSet):
 class RecepcionMpViewSet(viewsets.ModelViewSet):
     queryset = RecepcionMp.objects.all()
     permission_classes = [IsAuthenticated,]
-    
+
     def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return RecepcionMp.objects.all()
         user = self.request.user
         try:
             anio = PersonalizacionPerfil.objects.get(usuario= user).anio

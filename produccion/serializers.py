@@ -11,10 +11,8 @@ from django.contrib.contenttypes.models import ContentType
 class CCTarjaResultanteProduccionSerializer(serializers.ModelSerializer):
     cc_registrado_por = serializers.StringRelatedField()
     class Meta:
-        model = CCTarjaResultante 
-        # i need to return the calibre_display from the model
-        
-        fields = ['estado_cc', 'variedad', 'get_calibre', 'cantidad_muestra', 'trozo', 'picada', 'hongo', 
+        model = CCTarjaResultante
+        fields = ['estado_cc', 'variedad', 'calibre', 'cantidad_muestra', 'trozo', 'picada', 'hongo', 
                   'daño_insecto', 'dobles', 'goma', 'basura', 'mezcla_variedad', 'canuto', 'pepa_sana', 
                   'fuera_color', 'punto_goma', 'vana_deshidratada', 'cc_registrado_por']
 
@@ -35,10 +33,10 @@ class ProduccionDetailSerializer(serializers.ModelSerializer):
     # productores_duenos_lotes = serializers.SerializerMethodField()
     tarjas_resultantes = TarjaResultanteProduccionSerializer(many=True, source='tarjaresultante_set')
     cantidad_bines_resultantes = serializers.SerializerMethodField()
-    comercializador = serializers.SerializerMethodField()
+
     class Meta:
         model = Produccion
-        fields = ['numero_programa', 'kilos_resultantes_totales', 'numeros_lote', 'tarjas_resultantes', 'cantidad_bines_resultantes', 'comercializador']
+        fields = ['numero_programa', 'kilos_resultantes_totales', 'numeros_lote', 'tarjas_resultantes', 'cantidad_bines_resultantes']
 
     def get_kilos_resultantes_totales(self, obj):
         return sum(t.peso - t.tipo_patineta for t in obj.tarjaresultante_set.all())
@@ -52,7 +50,6 @@ class ProduccionDetailSerializer(serializers.ModelSerializer):
             lotes.add(lote.bodega_techado_ext.guia_patio.lote_recepcionado.numero_lote)
         return list(lotes)
     
-    
     # def get_productores_duenos_lotes(self, obj):
     #     productores = set()
     #     for lote in obj.lotesprograma_set.all():
@@ -65,16 +62,6 @@ class ProduccionDetailSerializer(serializers.ModelSerializer):
             if lote.bodega_techado_ext.guia_patio.lote_recepcionado and hasattr(lote.bodega_techado_ext.guia_patio.lote_recepcionado, 'numero_lote'):
                 numeros_lote.add(lote.bodega_techado_ext.guia_patio.lote_recepcionado.numero_lote)
         return list(numeros_lote)
-    
-    def get_comercializador(self, obj):
-        lote_en_produccion = LotesPrograma.objects.filter(produccion=obj).first()
-        if lote_en_produccion:
-            envase = EnvasesPatioTechadoExt.objects.get(pk=lote_en_produccion.bodega_techado_ext.pk)
-            if envase.guia_patio.tipo_recepcion.model == 'recepcionmp':
-                comercializador = envase.guia_patio.lote_recepcionado.guiarecepcion.comercializador.nombre
-                return comercializador
-        else:
-            return "No definido"
     
 
 
@@ -93,7 +80,6 @@ class DetalleProduccionSerializer(serializers.ModelSerializer):
     lotes_procesados = serializers.SerializerMethodField()
     condicion_cierre = serializers.SerializerMethodField()
     hay_bins_en_g2 = serializers.SerializerMethodField()
-    comercializador = serializers.SerializerMethodField()
     
     def get_fecha_inicio_proceso(self, obj):
         if obj.fecha_inicio_proceso:
@@ -182,17 +168,6 @@ class DetalleProduccionSerializer(serializers.ModelSerializer):
     
     def get_estado_label(self, obj):
         return obj.get_estado_display()
-    
-    def get_comercializador(self, obj):
-        lote_en_produccion = LotesPrograma.objects.filter(produccion=obj).first()
-        if lote_en_produccion:
-            envase = EnvasesPatioTechadoExt.objects.get(pk=lote_en_produccion.bodega_techado_ext.pk)
-            if envase.guia_patio.tipo_recepcion.model == 'recepcionmp':
-                comercializador = envase.guia_patio.lote_recepcionado.guiarecepcion.comercializador.nombre
-                return comercializador
-        else:
-            return "No definido"
-            
     
     class Meta:
         model = Produccion
