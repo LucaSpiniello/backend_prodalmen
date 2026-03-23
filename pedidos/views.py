@@ -27,7 +27,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
         resultados = []
         for pedido in pedidos:
             cliente = pedido.pedido.cliente
-            if pedido.tipo_pedido.model == 'pedidomercadointerno' and pedido.pedido.comercializador == comercializador:
+            if pedido.tipo_pedido.model == 'pedidomercadointerno':
                 sucursal_set_interno = cliente.sucursalclientemercado_set
                 sucursal_matriz = sucursal_set_interno.first().nombre if sucursal_set_interno.exists() else 'No tiene sucursal'
                 dic = {
