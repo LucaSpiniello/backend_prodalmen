@@ -14,16 +14,30 @@ from comunas.models import *
 from guiassalida.models import *
 from django.db import transaction
 from embalaje.models import PalletProductoTerminado
+from cuentas.models import PersonalizacionPerfil
 
 class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all()
     serializer_class = PedidoSerializer
-    
+
+    def get_queryset(self):
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return Pedido.objects.all()
+        user = self.request.user
+        try:
+            anio = PersonalizacionPerfil.objects.get(usuario=user).anio
+            if anio == 'Todo':
+                return self.queryset
+            else:
+                return Pedido.objects.filter(fecha_creacion__year=anio)
+        except PersonalizacionPerfil.DoesNotExist:
+            return self.queryset
+
     @action(detail=False, methods=['GET'])
     def unificados(self, request):
         tipo_pedido = request.query_params.get('tipo_pedido', None)
         comercializador = request.query_params.get('comercializador', None)
-        pedidos = Pedido.objects.filter(tipo_pedido__model=tipo_pedido).order_by('-fecha_creacion')
+        pedidos = self.get_queryset().filter(tipo_pedido__model=tipo_pedido).order_by('-fecha_creacion')
         resultados = []
         for pedido in pedidos:
             cliente = pedido.pedido.cliente
@@ -109,7 +123,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
         grouped_pedidos = defaultdict(float)
 
         for tipo_pedido in tipos_pedido:
-            pedidos = Pedido.objects.filter(tipo_pedido__model=tipo_pedido)
+            pedidos = self.get_queryset().filter(tipo_pedido__model=tipo_pedido)
             
             for pedido in pedidos:
                 if pedido.pedido.comercializador == comercializador:
